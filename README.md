@@ -1,4 +1,4 @@
-# 4th-year-project
+# 4th-Year-Project
 
 UCL 4th Year Project Code
 This is be the main online repository for our group code.
