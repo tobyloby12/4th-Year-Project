@@ -99,7 +99,7 @@ def main():
                         coverBoxesAnimation(mainBoard, [(firstSelection[0], firstSelection[1]), (boxx, boxy)])
                         revealedBoxes[firstSelection[0]][firstSelection[1]] = False
                         revealedBoxes[boxx][boxy] = False
-                    elif hasWon(revealedboxes): # check if all pairs found
+                    elif hasWon(revealedBoxes): # check if all pairs found
                         gameWonAnimation(mainBoard)
                         pygame.time.wait(2000)
 
