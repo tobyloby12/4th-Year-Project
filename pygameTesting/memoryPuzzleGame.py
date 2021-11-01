@@ -12,8 +12,8 @@ WINDOWHEIGHT = 480 # size of window height
 REVEALSPEED = 8 # speed at which sliding boxes reveals and covers
 BOXSIZE = 40 # size of box height and width
 GAPSIZE = 10 # size of gaps between boxes
-BOARDWIDTH = 10 # number of columns of boxes
-BOARDHEIGHT = 7 # number of rows of boxes
+BOARDWIDTH = 7 # number of columns of boxes
+BOARDHEIGHT = 4 # number of rows of boxes
 assert (BOARDWIDTH*BOARDHEIGHT) % 2 == 0, 'Board needs to have an even number of boxes for pairs and matchs'
 XMARGIN = int((WINDOWWIDTH - (BOARDWIDTH*(BOXSIZE + GAPSIZE)))/2)
 YMARGIN = int((WINDOWHEIGHT - (BOARDHEIGHT*(BOXSIZE + GAPSIZE)))/2)
