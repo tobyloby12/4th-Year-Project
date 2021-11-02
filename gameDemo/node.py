@@ -7,6 +7,8 @@ import pygame
 
 GRAY = (100, 100, 100)
 WHITE = (255, 255, 255)
+HIGHLIGHTYELLOW = (255, 255, 0, 255)
+HIGHLIGHTGREEN = (0, 255, 0, 255)
 
 NODESIZE = 20
 OUTLINESIZE = 4
@@ -16,9 +18,13 @@ class Node:
     def __init__(self, nodeID, name, xpos, ypos):
         self.nodeID = nodeID
         self.name = name
-        self.links = []
+        self.links = {}
         self.xpos = xpos
         self.ypos = ypos
+        self.isHighlighted = False
+        self.isSelected = False
+        self.isSource = False
+        self.isDest = False
 
     def getName(self):
         return self.name
@@ -38,9 +44,34 @@ class Node:
     def getY(self):
         return self.ypos
 
+    def setHighlighted(self, value):
+        self.isHighlighted = value
+
+    def setSelected(self, value):
+        self.isSelected = value
+
+    def setLinks(self, linkList):
+        for link in linkList:
+            if self.name == link.node1.name:
+                self.links[link.node2.name] = link.linkID
+            elif self.name == link.node2.name:
+                self.links[link.node1.name] = link.linkID
+    
+    def setSource(self, value):
+        self.isSource = value
+
+    def setDest(self, value):
+        self.isDest = value
+
     def drawNode(self, display, color):
-        pygame.draw.circle(display, color, (self.xpos, self.ypos), NODESIZE, OUTLINESIZE)
+        if self.isHighlighted == True:
+            pygame.draw.circle(display, HIGHLIGHTYELLOW, (self.xpos, self.ypos), NODESIZE+5)
+        elif self.isSelected == True:
+            pygame.draw.circle(display, HIGHLIGHTGREEN, (self.xpos, self.ypos), NODESIZE+5)
+        pygame.draw.circle(display, color, (self.xpos, self.ypos), NODESIZE)
         pygame.draw.circle(display, GRAY, (self.xpos, self.ypos), NODESIZE - OUTLINESIZE)
+        if self.isSource == True or self.isDest == True:
+            pygame.draw.circle(display, color, (self.xpos, self.ypos), NODESIZE)
         pygame.font.init()
         myfont = pygame.font.SysFont('Calibri', TEXTSIZE)
         textsurface = myfont.render(f'{self.name}', False, WHITE)

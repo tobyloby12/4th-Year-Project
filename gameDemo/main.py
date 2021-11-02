@@ -16,7 +16,7 @@ TIMERBARHEIGHT = 15
 
 assert WINDOWWIDTH == INCOMINGREQUESTWIDTH + NETWORKTOPOLOGYWIDTH + SELECTEDLINKWIDTH + 4*MARGIN
 FPS = 30
-REQUESTHEIGHT = 30
+REQUESTHEIGHT = 40
 
 
 RED = (255, 0, 0)
@@ -25,6 +25,7 @@ WHITE = (255, 255, 255)
 BLUE = (0, 0, 255)
 BLACK = (0, 0, 0)
 ORANGE = (255, 128, 0)
+LIGHTGRAY = (150, 150, 150)
 
 BGCOLOR = GRAY
 
@@ -126,7 +127,7 @@ def displayRequest(DISPLAYSURF, activeRequests, timer):
         if timeLeft > 0:
             pygame.draw.rect(DISPLAYSURF, ORANGE, (MARGIN, HEADER + (i+1)*REQUESTHEIGHT + i*TIMERBARHEIGHT, INCOMINGREQUESTWIDTH*timeLeft/request.timeLimit, TIMERBARHEIGHT))
 
-        pygame.draw.rect(DISPLAYSURF, RED, requestBox, 4)
+        pygame.draw.rect(DISPLAYSURF, LIGHTGRAY, requestBox)
         pygame.font.init()
         myfont = pygame.font.SysFont('Calibri', 30)
         textsurface = myfont.render(f'({request.sourceNode}, {request.destNode}, {request.bandWidth})', False, WHITE)
@@ -139,17 +140,26 @@ def displayRequest(DISPLAYSURF, activeRequests, timer):
 def createTestTopology():
     # testNodes
     nodeA = Node(0, 'A', 250, 200)
+    nodeA.setSelected(True)
     nodeB = Node(1, 'B', 250, 400)
+    nodeB.setSelected(True)
     nodeC = Node(2, 'C', 600, 200)
+    nodeC.setHighlighted(True)
     nodeD = Node(3, 'D', 600, 400)
-    link1 = Link(nodeA, nodeB)
-    link2 = Link(nodeB, nodeC)
-    link3 = Link(nodeB, nodeD)
-    link4 = Link(nodeA, nodeC)
-    link5 = Link(nodeC, nodeD)
+    nodeD.setSource(True)
+    link1 = Link(0, nodeA, nodeB)
+    link1.setSelected(True)
+    link2 = Link(1, nodeB, nodeC)
+    link2.setHighlighted(True)
+    link3 = Link(2, nodeB, nodeD)
+    link4 = Link(3, nodeA, nodeC)
+    link5 = Link(4, nodeC, nodeD)
 
     nodeList = [nodeA, nodeB, nodeC, nodeD]
     linkList = [link1, link2, link3, link4, link5]
+
+    for node in nodeList:
+        node.setLinks(linkList)
 
     return nodeList, linkList
 
