@@ -1,6 +1,7 @@
 # creating requests
 import random
 from node import *
+import datetime
 
 # requests consist of source node, destination node, bandwidth, time allocated
 
@@ -11,10 +12,21 @@ class Request:
         self.sourceNode = SourceNode
         self.destNode = DestNode
         self.bandWidth = BandWidth
-        self.timeAllocated = 10
+        self.timeLimit = 10
+        self.timeDeallocated
+        self.completed = False
+        self.timeCompleted = None
 
     def toString(self):
-        return f'RequestID: {self.requestID}, SourceNode: {self.sourceNode}, DestNode: {self.destNode}, BandWidth: {self.bandWidth}, Time to complete: {self.timeAllocated}s'
+        return f'RequestID: {self.requestID}, SourceNode: {self.sourceNode}, DestNode: {self.destNode}, BandWidth: {self.bandWidth}, Time limit: {self.timeLimit}s, Time Deallocate: {self.timeDeallocated}'
+
+    # request has been completed
+    def complete(self, time):
+        self.completed = True
+        self.timeCompleted = time
+        self.timeDeallocated = time + datetime.timedelta(0, 5)
+
+    
     
 
 
@@ -39,6 +51,7 @@ def generateRequests(listOfNodes, numberOfRequests):
         request = Request(i, source, destination, bandwidth)
         requestsList.append(request)
     return requestsList
+
 
 def main():
     # test code
