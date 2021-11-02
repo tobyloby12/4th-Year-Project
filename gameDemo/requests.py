@@ -6,28 +6,36 @@ import datetime
 # requests consist of source node, destination node, bandwidth, time allocated
 
 class Request:
-    def __init__(self, RequestID, SourceNode, DestNode, BandWidth):
+    def __init__(self, RequestID, SourceNode, DestNode, BandWidth, timeStart):
         # initialising parameters
         self.requestID = RequestID
         self.sourceNode = SourceNode
         self.destNode = DestNode
         self.bandWidth = BandWidth
-        self.timeLimit = 10
-        self.timeDeallocated
+        self.timeLimit = 15
+        self.timeStart = timeStart
+        self.timeDeallocated = 5
         self.completed = False
         self.timeCompleted = None
+        self.blocked = False
 
     def toString(self):
-        return f'RequestID: {self.requestID}, SourceNode: {self.sourceNode}, DestNode: {self.destNode}, BandWidth: {self.bandWidth}, Time limit: {self.timeLimit}s, Time Deallocate: {self.timeDeallocated}'
+        return f'''RequestID: {self.requestID}, SourceNode: {self.sourceNode}, DestNode: {self.destNode}, 
+        BandWidth: {self.bandWidth}, Time limit: {self.timeLimit}s, Time Start: {self.timeStart}, 
+        Time Deallocate: {self.timeDeallocated}'''
 
     # request has been completed
     def complete(self, time):
         self.completed = True
         self.timeCompleted = time
-        self.timeDeallocated = time + datetime.timedelta(0, 5)
+        self.timeDeallocated = time - self.timeDeallocated
+
+    def getTimeStart(self):
+        return self.timeStart
 
     
-    
+    def setBlock(self, block):
+        self.blocked = block
 
 
 def generateRequests(listOfNodes, numberOfRequests):
@@ -35,7 +43,7 @@ def generateRequests(listOfNodes, numberOfRequests):
     nodeIDList = []
     # getting nodeIDs
     for node in listOfNodes:
-        nodeIDList.append(node.getID())
+        nodeIDList.append(node.getName())
 
     # creating requests
     for i in range(numberOfRequests):
@@ -47,8 +55,10 @@ def generateRequests(listOfNodes, numberOfRequests):
             destination = random.choice(nodeIDList)
         # randomising bandwidth
         bandwidth = random.randint(1, 5)
+        # randomising time start
+        timeStart = 60 - i*10
         # creating 
-        request = Request(i, source, destination, bandwidth)
+        request = Request(i, source, destination, bandwidth, timeStart)
         requestsList.append(request)
     return requestsList
 
@@ -57,10 +67,10 @@ def main():
     # test code
 
     # create nodes
-    node1 = Node(0, 'A')
-    node2 = Node(1, 'B')
-    node3 = Node(2, 'C')
-    node4 = Node(3, 'D')
+    node1 = Node(0, 'A', 300, 300)
+    node2 = Node(1, 'B', 300, 300)
+    node3 = Node(2, 'C', 300, 300)
+    node4 = Node(3, 'D', 300, 300)
     
     nodeList = [node1, node2, node3, node4]
     requestList = generateRequests(nodeList, 5)

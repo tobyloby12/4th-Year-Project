@@ -3,7 +3,7 @@ import pygame, sys
 from pygame.locals import *
 from node import *
 from link import *
-import requests
+from requests import *
 
 WINDOWWIDTH = 1000
 WINDOWHEIGHT = 600
@@ -12,15 +12,19 @@ INCOMINGREQUESTWIDTH = 200
 NETWORKTOPOLOGYWIDTH = 560
 SELECTEDLINKWIDTH = 200
 HEADER = 50
+TIMERBARHEIGHT = 15
+
 assert WINDOWWIDTH == INCOMINGREQUESTWIDTH + NETWORKTOPOLOGYWIDTH + SELECTEDLINKWIDTH + 4*MARGIN
 FPS = 30
+REQUESTHEIGHT = 30
 
 
-
+RED = (255, 0, 0)
 GRAY = (100, 100, 100)
 WHITE = (255, 255, 255)
 BLUE = (0, 0, 255)
 BLACK = (0, 0, 0)
+ORANGE = (255, 128, 0)
 
 BGCOLOR = GRAY
 
@@ -32,6 +36,7 @@ def main():
     timer_event = pygame.USEREVENT+1
     pygame.time.set_timer(timer_event, 1000)
     timer = 60
+    timer2 = 60
     
     FPSCLOCK = pygame.time.Clock()
     DISPLAYSURF = pygame.display.set_mode((WINDOWWIDTH, WINDOWHEIGHT))
@@ -40,6 +45,8 @@ def main():
     SCORE = 0
 
     nodeList, linkList = createTestTopology()
+    requestList = generateRequests(nodeList, 5)
+    activeRequests = []
 
     while True:
         # creating game screen
@@ -50,7 +57,9 @@ def main():
         drawTopologyScreen(DISPLAYSURF, linkList, nodeList)
         drawRequestsScreen(DISPLAYSURF)
         drawLinksScreen(DISPLAYSURF)
-
+        
+        displayRequest(DISPLAYSURF, activeRequests, timer2)
+        timer2 -= 1/30
         # event handling
         for event in pygame.event.get():
             if event.type == QUIT:
@@ -65,9 +74,17 @@ def main():
                     except:
                         SCORE = 0
             elif event.type == timer_event:
+                for request in requestList:
+                    if timer == request.timeStart:
+                        activeRequests.append(request)
+                    elif timer == request.timeStart - request.timeLimit:
+                        request.setBlock(True)
+                        SCORE -= 1
+                        activeRequests.remove(request)
                 timer -= 1
+                
         pygame.display.update()
-        FPSCLOCK.tick(FPS)
+        FPSCLOCK.tick(30)
 
 # display score
 def displayScore(DISPLAYSURF, score, width, height):
@@ -99,6 +116,23 @@ def displayTimer(DISPLAYSURF, time):
     myfont = pygame.font.SysFont('Calibri', 30)
     textsurface = myfont.render(f'Time: {str(time)}', False, WHITE)
     DISPLAYSURF.blit(textsurface, (WINDOWWIDTH-150, 15))
+
+# displays request and timers
+def displayRequest(DISPLAYSURF, activeRequests, timer):
+    numberOfBoxes = len(activeRequests)
+    for i, request in enumerate(activeRequests):
+        requestBox = pygame.Rect(MARGIN, HEADER + i*(REQUESTHEIGHT + TIMERBARHEIGHT), INCOMINGREQUESTWIDTH, REQUESTHEIGHT)
+        timeLeft = request.timeLimit - (request.timeStart - timer)
+        if timeLeft > 0:
+            pygame.draw.rect(DISPLAYSURF, ORANGE, (MARGIN, HEADER + (i+1)*REQUESTHEIGHT + i*TIMERBARHEIGHT, INCOMINGREQUESTWIDTH*timeLeft/request.timeLimit, TIMERBARHEIGHT))
+
+        pygame.draw.rect(DISPLAYSURF, RED, requestBox, 4)
+        pygame.font.init()
+        myfont = pygame.font.SysFont('Calibri', 30)
+        textsurface = myfont.render(f'({request.sourceNode}, {request.destNode}, {request.bandWidth})', False, WHITE)
+        text_rect = textsurface.get_rect(center=requestBox.center)
+        DISPLAYSURF.blit(textsurface, text_rect)
+        
 
 
 # creating fixed test topology
