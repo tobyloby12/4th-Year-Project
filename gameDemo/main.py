@@ -28,10 +28,10 @@ BLACK = (0, 0, 0)
 ORANGE = (255, 128, 0)
 LIGHTGRAY = (150, 150, 150)
 BGCOLOR = GRAY
-colorRequest = RED
+colorRequest = BLACK
 
 
-requestMode = False
+requestMode = True
 topologyMode = False
 spectrumMode = False
 
@@ -83,18 +83,22 @@ def main():
                     elif timer == request.timeStart - request.timeLimit:
                         request.setBlock(True)
                         SCORE -= 1
+                        if user.getCurrentRequest() != None:
+                            user.deselectRequest()
                         activeRequests.remove(request)
+
                 timer -= 1
             elif event.type == pygame.KEYDOWN and requestMode == True:
-                # handle if none
-                # find index of current selected in active requests
-                # go through requests with arrow keys
+                # TODO
+                # create requestMode function
+                # automatically select first request when request times out without pressing key
                 currentRequest = user.getCurrentRequest()
                 if currentRequest == None and activeRequests != []:
-                    user.selectRequest(activeRequest[0])
+                    user.selectRequest(activeRequests[0])
+                    currentRequest = user.getCurrentRequest()
                 elif activeRequests == []:
-                    user.getCurrentRequest(None)
-                activeRequestLength = len(activeRequests)
+                    user.getCurrentRequest()
+                activeRequestsLength = len(activeRequests)
                 requestIndex = activeRequests.index(currentRequest)
                 if event.key == pygame.K_DOWN:
                     if requestIndex == activeRequestsLength - 1:
@@ -155,9 +159,9 @@ def displayRequest(DISPLAYSURF, activeRequests, timer):
         if timeLeft > 0:
             pygame.draw.rect(DISPLAYSURF, ORANGE, (MARGIN, HEADER + (i+1)*REQUESTHEIGHT + i*TIMERBARHEIGHT, INCOMINGREQUESTWIDTH*timeLeft/request.timeLimit, TIMERBARHEIGHT))
         if request.getSelected() == True:
-            colorRequest == RED
+            colorRequest = RED
         else:
-            colorRequest == LIGHTGRAY
+            colorRequest = LIGHTGRAY
         pygame.draw.rect(DISPLAYSURF, colorRequest, requestBox)
         pygame.font.init()
         myfont = pygame.font.SysFont('Calibri', 30)
