@@ -56,6 +56,7 @@ class Node:
                 self.links[link.node2.name] = link.linkID
             elif self.name == link.node2.name:
                 self.links[link.node1.name] = link.linkID
+
     
     def setSource(self, value):
         self.isSource = value

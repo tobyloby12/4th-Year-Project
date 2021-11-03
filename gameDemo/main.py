@@ -4,6 +4,7 @@ from pygame.locals import *
 from node import *
 from link import *
 from requests import *
+from user import *
 
 WINDOWWIDTH = 1000
 WINDOWHEIGHT = 600
@@ -26,10 +27,16 @@ BLUE = (0, 0, 255)
 BLACK = (0, 0, 0)
 ORANGE = (255, 128, 0)
 LIGHTGRAY = (150, 150, 150)
-
 BGCOLOR = GRAY
+colorRequest = RED
+
+
+requestMode = False
+topologyMode = False
+spectrumMode = False
 
 def main():
+    user = User()
     global FPSCLOCK, DISPLAYSURF, SCORE
     pygame.init()
 
@@ -48,6 +55,7 @@ def main():
     nodeList, linkList = createTestTopology()
     requestList = generateRequests(nodeList, 5)
     activeRequests = []
+    user.selectRequest(requestList[0])
 
     while True:
         # creating game screen
@@ -66,14 +74,8 @@ def main():
             if event.type == QUIT:
                 pygame.quit()
                 sys.exit()
-            elif event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_UP:
-                    SCORE += 1
-                elif event.key == pygame.K_DOWN:
-                    try:
-                        SCORE -= 1
-                    except:
-                        SCORE = 0
+
+            # sending in requests
             elif event.type == timer_event:
                 for request in requestList:
                     if timer == request.timeStart:
@@ -83,6 +85,32 @@ def main():
                         SCORE -= 1
                         activeRequests.remove(request)
                 timer -= 1
+            elif event.type == pygame.KEYDOWN and requestMode == True:
+                # handle if none
+                # find index of current selected in active requests
+                # go through requests with arrow keys
+                currentRequest = user.getCurrentRequest()
+                if currentRequest == None and activeRequests != []:
+                    user.selectRequest(activeRequest[0])
+                elif activeRequests == []:
+                    user.getCurrentRequest(None)
+                activeRequestLength = len(activeRequests)
+                requestIndex = activeRequests.index(currentRequest)
+                if event.key == pygame.K_DOWN:
+                    if requestIndex == activeRequestsLength - 1:
+                        requestIndex = 0
+                    else:
+                        requestIndex += 1
+                    user.deselectRequest()
+                    user.selectRequest(activeRequests[requestIndex])
+
+                if event.key == pygame.K_UP:
+                    if requestIndex == 0:
+                        requestIndex = activeRequestsLength - 1
+                    else:
+                        requestIndex -= 1
+                    user.deselectRequest()
+                    user.selectRequest(activeRequests[requestIndex])
                 
         pygame.display.update()
         FPSCLOCK.tick(30)
@@ -126,11 +154,14 @@ def displayRequest(DISPLAYSURF, activeRequests, timer):
         timeLeft = request.timeLimit - (request.timeStart - timer)
         if timeLeft > 0:
             pygame.draw.rect(DISPLAYSURF, ORANGE, (MARGIN, HEADER + (i+1)*REQUESTHEIGHT + i*TIMERBARHEIGHT, INCOMINGREQUESTWIDTH*timeLeft/request.timeLimit, TIMERBARHEIGHT))
-
-        pygame.draw.rect(DISPLAYSURF, LIGHTGRAY, requestBox)
+        if request.getSelected() == True:
+            colorRequest == RED
+        else:
+            colorRequest == LIGHTGRAY
+        pygame.draw.rect(DISPLAYSURF, colorRequest, requestBox)
         pygame.font.init()
         myfont = pygame.font.SysFont('Calibri', 30)
-        textsurface = myfont.render(f'({request.sourceNode}, {request.destNode}, {request.bandWidth})', False, WHITE)
+        textsurface = myfont.render(f'({request.sourceNode.getName()}, {request.destNode.getName()}, {request.bandWidth})', False, WHITE)
         text_rect = textsurface.get_rect(center=requestBox.center)
         DISPLAYSURF.blit(textsurface, text_rect)
         
@@ -140,17 +171,11 @@ def displayRequest(DISPLAYSURF, activeRequests, timer):
 def createTestTopology():
     # testNodes
     nodeA = Node(0, 'A', 250, 200)
-    nodeA.setSelected(True)
     nodeB = Node(1, 'B', 250, 400)
-    nodeB.setSelected(True)
     nodeC = Node(2, 'C', 600, 200)
-    nodeC.setHighlighted(True)
     nodeD = Node(3, 'D', 600, 400)
-    nodeD.setSource(True)
     link1 = Link(0, nodeA, nodeB)
-    link1.setSelected(True)
     link2 = Link(1, nodeB, nodeC)
-    link2.setHighlighted(True)
     link3 = Link(2, nodeB, nodeD)
     link4 = Link(3, nodeA, nodeC)
     link5 = Link(4, nodeC, nodeD)

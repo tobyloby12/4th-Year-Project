@@ -18,9 +18,10 @@ class Request:
         self.completed = False
         self.timeCompleted = None
         self.blocked = False
+        self.isSelected = False
 
     def toString(self):
-        return f'''RequestID: {self.requestID}, SourceNode: {self.sourceNode}, DestNode: {self.destNode}, 
+        return f'''RequestID: {self.requestID}, SourceNode: {self.sourceNode.getName()}, DestNode: {self.destNode.getName()}, 
         BandWidth: {self.bandWidth}, Time limit: {self.timeLimit}s, Time Start: {self.timeStart}, 
         Time Deallocate: {self.timeDeallocated}'''
 
@@ -37,22 +38,29 @@ class Request:
     def setBlock(self, block):
         self.blocked = block
 
+    def getSourceNode(self):
+        return self.sourceNode
+
+    def getDestNode(self):
+        return self.destNode
+
+    def setSelected(self, value):
+        self.isSelected = value
+
+    def getSelected(self):
+        return self.isSelected
 
 def generateRequests(listOfNodes, numberOfRequests):
     requestsList = []
-    nodeIDList = []
-    # getting nodeIDs
-    for node in listOfNodes:
-        nodeIDList.append(node.getName())
 
     # creating requests
     for i in range(numberOfRequests):
         # random source and destinations
-        source = random.choice(nodeIDList)
-        destination = random.choice(nodeIDList)
+        source = random.choice(listOfNodes)
+        destination = random.choice(listOfNodes)
         # makind sure destination and source are not the same
         while source == destination:
-            destination = random.choice(nodeIDList)
+            destination = random.choice(listOfNodes)
         # randomising bandwidth
         bandwidth = random.randint(1, 5)
         # randomising time start
