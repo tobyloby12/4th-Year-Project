@@ -28,3 +28,9 @@ class User:
 
     def setCurrentRequest(self, value):
         self.currentRequest(value)
+
+    def getCurrentNode(self):
+        return self.currentNode
+
+    def setCurrentNode(self, value):
+        self.currentNode = value

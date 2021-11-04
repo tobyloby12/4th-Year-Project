@@ -12,6 +12,15 @@ class Link:
         self.spectrum = [0]*5
         self.isHighlighted = False
         self.isSelected = False
+        self.xpos = (node1.getX() + node2.getX())/2
+        self.ypos = (node1.getY() + node2.getY())/2
+
+
+    def getX(self):
+        return self.xpos
+
+    def getY(self):
+        return self.ypos
 
 
     def drawLink(self, display, color):

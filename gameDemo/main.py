@@ -31,11 +31,11 @@ BGCOLOR = GRAY
 colorRequest = BLACK
 
 
-requestMode = True
-topologyMode = False
-spectrumMode = False
 
 def main():
+    requestMode = True
+    topologyMode = False
+    spectrumMode = False
     user = User()
     global FPSCLOCK, DISPLAYSURF, SCORE
     pygame.init()
@@ -63,12 +63,18 @@ def main():
         displayScore(DISPLAYSURF, SCORE, WINDOWWIDTH, WINDOWHEIGHT)
         displayTimer(DISPLAYSURF, timer)
         # drawing topology
-        drawTopologyScreen(DISPLAYSURF, linkList, nodeList)
-        drawRequestsScreen(DISPLAYSURF)
-        drawLinksScreen(DISPLAYSURF)
+        drawTopologyScreen(DISPLAYSURF, linkList, nodeList, topologyMode)
+        drawRequestsScreen(DISPLAYSURF, requestMode)
+        drawSpectrumScreen(DISPLAYSURF, spectrumMode)
         
         displayRequest(DISPLAYSURF, activeRequests, timer2)
-        timer2 -= 1/30
+
+        currentRequest = user.getCurrentRequest()
+        if currentRequest == None and activeRequests != []:
+            user.selectRequest(activeRequests[0])
+            currentRequest = user.getCurrentRequest()
+
+        timer2 -= 1/FPS
         # event handling
         for event in pygame.event.get():
             if event.type == QUIT:
@@ -92,32 +98,52 @@ def main():
                 # TODO
                 # create requestMode function
                 # automatically select first request when request times out without pressing key
-                currentRequest = user.getCurrentRequest()
-                if currentRequest == None and activeRequests != []:
-                    user.selectRequest(activeRequests[0])
-                    currentRequest = user.getCurrentRequest()
-                elif activeRequests == []:
-                    user.getCurrentRequest()
-                activeRequestsLength = len(activeRequests)
-                requestIndex = activeRequests.index(currentRequest)
-                if event.key == pygame.K_DOWN:
-                    if requestIndex == activeRequestsLength - 1:
-                        requestIndex = 0
-                    else:
-                        requestIndex += 1
-                    user.deselectRequest()
-                    user.selectRequest(activeRequests[requestIndex])
+                if activeRequests == []:
+                    pass
+                else:
+                    activeRequestsLength = len(activeRequests)
+                    requestIndex = activeRequests.index(currentRequest)
+                    if event.key == pygame.K_DOWN:
+                        if requestIndex == activeRequestsLength - 1:
+                            requestIndex = 0
+                        else:
+                            requestIndex += 1
+                        user.deselectRequest()
+                        user.selectRequest(activeRequests[requestIndex])
 
-                if event.key == pygame.K_UP:
-                    if requestIndex == 0:
-                        requestIndex = activeRequestsLength - 1
-                    else:
-                        requestIndex -= 1
-                    user.deselectRequest()
-                    user.selectRequest(activeRequests[requestIndex])
+                    if event.key == pygame.K_UP:
+                        if requestIndex == 0:
+                            requestIndex = activeRequestsLength - 1
+                        else:
+                            requestIndex -= 1
+                        user.deselectRequest()
+                        user.selectRequest(activeRequests[requestIndex])
+                    
+                    if event.key == pygame.K_RETURN:
+                        requestMode = False
+                        topologyMode = True
+                        user.setCurrentNode(user.currentRequest.getSourceNode())
+                        user.getCurrentNode().setSelected(True)
+
+            elif event.type == pygame.KEYDOWN and topologyMode == True:
+
+                if event.key == pygame.K_BACKSPACE and user.getCurrentNode() == user.getCurrentRequest().getSourceNode():
+                        user.getCurrentNode().setSelected(False)
+                        user.getCurrentNode().getLinks()[0][0].setHighlighted(False)
+                        user.getCurrentNode().getLinks()[0][1].setHighlighted(False)
+                        print(user.getCurrentNode().getLinks()[0][1].isHighlighted)
+                        requestMode = True
+                        topologyMode = False
+                        
+                else:
+                    availableLinks = user.getCurrentNode().getLinks()
+                    # set default selected
+                    availableLinks[0][0].setHighlighted(True)
+                    availableLinks[0][1].setHighlighted(True)
+
                 
         pygame.display.update()
-        FPSCLOCK.tick(30)
+        FPSCLOCK.tick(FPS)
 
 # display score
 def displayScore(DISPLAYSURF, score, width, height):
@@ -127,20 +153,32 @@ def displayScore(DISPLAYSURF, score, width, height):
     DISPLAYSURF.blit(textsurface, (width/2-70, 15))
 
 # drawing topology screen
-def drawTopologyScreen(DISPLAYSURF, linkList, nodeList):
-    pygame.draw.rect(DISPLAYSURF, BLACK, (MARGIN + INCOMINGREQUESTWIDTH + MARGIN, HEADER, NETWORKTOPOLOGYWIDTH, WINDOWHEIGHT - HEADER - MARGIN), 4)
+def drawTopologyScreen(DISPLAYSURF, linkList, nodeList, topologyMode):
+    if topologyMode == True:
+        color = RED
+    else:
+        color = BLACK
+    pygame.draw.rect(DISPLAYSURF, color, (MARGIN + INCOMINGREQUESTWIDTH + MARGIN, HEADER, NETWORKTOPOLOGYWIDTH, WINDOWHEIGHT - HEADER - MARGIN), 4)
     for link in linkList:
         link.drawLink(DISPLAYSURF, BLUE)
     for node in nodeList:
         node.drawNode(DISPLAYSURF, BLUE)
 
 # drawing requests screen
-def drawRequestsScreen(DISPLAYSURF):
-    pygame.draw.rect(DISPLAYSURF, BLACK, (MARGIN, HEADER, INCOMINGREQUESTWIDTH, WINDOWHEIGHT - HEADER - MARGIN), 4)
+def drawRequestsScreen(DISPLAYSURF, requestMode):
+    if requestMode == True:
+        color = RED
+    else:
+        color = BLACK
+    pygame.draw.rect(DISPLAYSURF, color, (MARGIN, HEADER, INCOMINGREQUESTWIDTH, WINDOWHEIGHT - HEADER - MARGIN), 4)
 
 # drawing links screen
-def drawLinksScreen(DISPLAYSURF):
-    pygame.draw.rect(DISPLAYSURF, BLACK, (MARGIN + INCOMINGREQUESTWIDTH + MARGIN + NETWORKTOPOLOGYWIDTH + MARGIN, 
+def drawSpectrumScreen(DISPLAYSURF, spectrumMode):
+    if spectrumMode == True:
+        color = RED
+    else:
+        color = BLACK
+    pygame.draw.rect(DISPLAYSURF, color, (MARGIN + INCOMINGREQUESTWIDTH + MARGIN + NETWORKTOPOLOGYWIDTH + MARGIN, 
     HEADER, SELECTEDLINKWIDTH, WINDOWHEIGHT - HEADER - MARGIN), 4)
 
 # drawing clock

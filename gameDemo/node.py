@@ -53,9 +53,17 @@ class Node:
     def setLinks(self, linkList):
         for link in linkList:
             if self.name == link.node1.name:
-                self.links[link.node2.name] = link.linkID
+                self.links[link.node2] = link
             elif self.name == link.node2.name:
-                self.links[link.node1.name] = link.linkID
+                self.links[link.node1] = link
+        # sort dictionary
+        # sortDict = sorted(self.links, key = self.links.__getitem__)
+        # print(sortDict)
+        sort_links = sorted(self.links.items(), key=lambda x: x[1].getY(), reverse=False)
+        self.links = sort_links
+
+    def getLinks(self):
+        return self.links
 
     
     def setSource(self, value):

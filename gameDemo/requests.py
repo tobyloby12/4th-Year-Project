@@ -64,7 +64,7 @@ def generateRequests(listOfNodes, numberOfRequests):
         # randomising bandwidth
         bandwidth = random.randint(1, 5)
         # randomising time start
-        timeStart = 60 - i*10
+        timeStart = 60 - i*1
         # creating 
         request = Request(i, source, destination, bandwidth, timeStart)
         requestsList.append(request)
