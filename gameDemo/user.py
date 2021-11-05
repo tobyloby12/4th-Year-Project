@@ -7,6 +7,7 @@ class User:
         self.currentNode = None
         self.currentRequest = None
 
+
     def selectRequest(self, request):
         self.currentRequest = request
         source = self.currentRequest.getSourceNode()
@@ -34,3 +35,9 @@ class User:
 
     def setCurrentNode(self, value):
         self.currentNode = value
+
+    def setLinksSelected(self, node, link):
+        self.linksSelected.append((node, link))
+
+    def getLinksSelected(self):
+        return self.linksSelected

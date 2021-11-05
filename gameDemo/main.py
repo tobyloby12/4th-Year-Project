@@ -16,7 +16,7 @@ HEADER = 50
 TIMERBARHEIGHT = 15
 
 assert WINDOWWIDTH == INCOMINGREQUESTWIDTH + NETWORKTOPOLOGYWIDTH + SELECTEDLINKWIDTH + 4*MARGIN
-FPS = 30
+FPS = 60
 REQUESTHEIGHT = 40
 
 
@@ -86,12 +86,30 @@ def main():
                 for request in requestList:
                     if timer == request.timeStart:
                         activeRequests.append(request)
-                    elif timer == request.timeStart - request.timeLimit:
+                    elif timer == request.timeStart - request.timeLimit + 1:
                         request.setBlock(True)
                         SCORE -= 1
-                        if user.getCurrentRequest() != None:
+                        if user.getCurrentRequest() != None and requestMode == False:
+                            # go through links and deselect all
                             user.deselectRequest()
+                            for node in nodeList:
+                                node.setHighlighted(False)
+                                node.setSelected(False)
+                            for link in linkList:
+                                link.setHighlighted(False)
+                                link.setSelected(False)
+
+                            requestMode = True
+                            topologyMode = False
+                            spectrumMode = False
+
+                        elif user.getCurrentRequest() != None:
+                            user.deselectRequest()
+                            requestMode = True
+                            topologyMode = False
+                            spectrumMode = False
                         activeRequests.remove(request)
+
 
                 timer -= 1
             elif event.type == pygame.KEYDOWN and requestMode == True:
@@ -124,22 +142,98 @@ def main():
                         topologyMode = True
                         user.setCurrentNode(user.currentRequest.getSourceNode())
                         user.getCurrentNode().setSelected(True)
+                        user.getCurrentNode().getLinks()[0][0].setHighlighted(True)
+                        user.getCurrentNode().getLinks()[0][1].setHighlighted(True)
+                        index = 0
+
 
             elif event.type == pygame.KEYDOWN and topologyMode == True:
 
-                if event.key == pygame.K_BACKSPACE and user.getCurrentNode() == user.getCurrentRequest().getSourceNode():
+                if event.key == pygame.K_BACKSPACE:
+                    if user.getCurrentNode() == user.getCurrentRequest().getSourceNode():
                         user.getCurrentNode().setSelected(False)
                         user.getCurrentNode().getLinks()[0][0].setHighlighted(False)
                         user.getCurrentNode().getLinks()[0][1].setHighlighted(False)
-                        print(user.getCurrentNode().getLinks()[0][1].isHighlighted)
                         requestMode = True
                         topologyMode = False
+                    else:
+                        previous = user.getLinksSelected()[-1]
+                        user.getCurrentNode().setSelected(False)
+                        user.setCurrentNode(previous[0])
+                        
+                        previous[1].setSelected(False)
+                        user.getLinksSelected().remove(previous)
+
+                        
+                        
+                        # removing all highlights
+                        for node in nodeList:
+                            node.setHighlighted(False)
+                        for link in linkList:
+                            link.setHighlighted(False)
+                        availableLinks = user.getCurrentNode().getLinks()
+                        # set default selected
+                        availableLinks[index][0].setHighlighted(True)
+                        availableLinks[index][1].setHighlighted(True)
+
+
                         
                 else:
                     availableLinks = user.getCurrentNode().getLinks()
+                    for link in user.getLinksSelected():
+                        availableLinks.remove(link)
                     # set default selected
-                    availableLinks[0][0].setHighlighted(True)
-                    availableLinks[0][1].setHighlighted(True)
+                    availableLinks[index][0].setHighlighted(True)
+                    availableLinks[index][1].setHighlighted(True)
+
+                if event.key == pygame.K_UP:
+                    
+                    availableLinks[index][0].setHighlighted(False)
+                    availableLinks[index][1].setHighlighted(False)
+                    if index == 0:
+                        index = len(availableLinks) - 1
+                    else:
+                        index -= 1
+                    availableLinks[index][0].setHighlighted(True)
+                    availableLinks[index][1].setHighlighted(True)
+
+                elif event.key == pygame.K_DOWN:
+                    
+                    availableLinks[index][0].setHighlighted(False)
+                    availableLinks[index][1].setHighlighted(False)
+                    if index == len(availableLinks) - 1:
+                        index = 0
+                    else:
+                        index += 1
+                    availableLinks[index][0].setHighlighted(True)
+                    availableLinks[index][1].setHighlighted(True)
+
+                elif event.key == pygame.K_RETURN:
+                    
+                    if user.getCurrentNode() != user.getCurrentRequest().getDestNode():
+                        if availableLinks[index][0] != user.getCurrentRequest().getDestNode():
+                            availableLinks[index][0].setHighlighted(False)
+                            availableLinks[index][1].setHighlighted(False)
+                            availableLinks[index][0].setSelected(True)
+                            availableLinks[index][1].setSelected(True)
+                            user.setLinksSelected(user.getCurrentNode(), availableLinks[index][1])
+
+                            user.setCurrentNode(availableLinks[index][0])
+                            index = 0
+                            availableLinks = user.getCurrentNode().getLinks()
+                            availableLinks[index][0].setHighlighted(True)
+                            availableLinks[index][1].setHighlighted(True)
+                        else:
+                            availableLinks[index][0].setHighlighted(False)
+                            availableLinks[index][1].setHighlighted(False)
+                            availableLinks[index][0].setSelected(True)
+                            availableLinks[index][1].setSelected(True)
+                            user.setLinksSelected(user.getCurrentNode(), availableLinks[index][1])
+                            topologyMode = False
+                            spectrumMode = True
+
+                
+
 
                 
         pygame.display.update()
