@@ -1,5 +1,5 @@
 ############################################################
-# TO DO:
+# TODO:
 # complete class by adding all getters and setters
 # create method for adding links and figure out logic for it
 ############################################################
@@ -32,11 +32,11 @@ class Node:
     def getID(self):
         return self.nodeID
 
-    # def setX(self, x):
-    #     self.xpos = x
+    def setX(self, x):
+        self.xpos = x
 
-    # def setY(self, y):
-    #     self.ypos = y
+    def setY(self, y):
+        self.ypos = y
 
     def getX(self):
         return self.xpos
@@ -56,9 +56,6 @@ class Node:
                 self.links[link.node2] = link
             elif self.name == link.node2.name:
                 self.links[link.node1] = link
-        # sort dictionary
-        # sortDict = sorted(self.links, key = self.links.__getitem__)
-        # print(sortDict)
         sort_links = sorted(self.links.items(), key=lambda x: x[1].getY(), reverse=False)
         self.links = sort_links
 

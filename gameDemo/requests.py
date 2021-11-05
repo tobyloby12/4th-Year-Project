@@ -12,7 +12,7 @@ class Request:
         self.sourceNode = SourceNode
         self.destNode = DestNode
         self.bandWidth = BandWidth
-        self.timeLimit = 30
+        self.timeLimit = 5
         self.timeStart = timeStart
         self.timeDeallocated = 5
         self.completed = False
@@ -64,7 +64,7 @@ def generateRequests(listOfNodes, numberOfRequests):
         # randomising bandwidth
         bandwidth = random.randint(1, 5)
         # randomising time start
-        timeStart = 60 - i*10
+        timeStart = 60 - i*1
         # creating 
         request = Request(i, source, destination, bandwidth, timeStart)
         requestsList.append(request)

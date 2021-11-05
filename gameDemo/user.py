@@ -36,8 +36,11 @@ class User:
     def setCurrentNode(self, value):
         self.currentNode = value
 
-    def setLinksSelected(self, node, link):
+    def addLink(self, node, link):
         self.linksSelected.append((node, link))
+    
+    def setLinksSelected(self, value):
+        self.linksSelected = value
 
     def getLinksSelected(self):
         return self.linksSelected

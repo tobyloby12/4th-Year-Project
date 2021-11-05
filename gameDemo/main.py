@@ -89,27 +89,24 @@ def main():
                     elif timer == request.timeStart - request.timeLimit + 1:
                         request.setBlock(True)
                         SCORE -= 1
-                        if user.getCurrentRequest() != None and requestMode == False:
-                            # go through links and deselect all
-                            user.deselectRequest()
-                            for node in nodeList:
-                                node.setHighlighted(False)
-                                node.setSelected(False)
-                            for link in linkList:
-                                link.setHighlighted(False)
-                                link.setSelected(False)
-
-                            requestMode = True
-                            topologyMode = False
-                            spectrumMode = False
-
-                        elif user.getCurrentRequest() != None:
-                            user.deselectRequest()
-                            requestMode = True
-                            topologyMode = False
-                            spectrumMode = False
                         activeRequests.remove(request)
+                
+                if timer == user.getCurrentRequest().timeStart - user.getCurrentRequest().timeLimit + 1 and user.getCurrentRequest() != None:
+                    user.getLinksSelected().clear()
+                    availableLinks = checkAvailable(user)
+                    if user.getCurrentRequest() != None and requestMode == False:
+                        # go through links and deselect all
+                        user.deselectRequest()
+                        for node in nodeList:
+                            node.setHighlighted(False)
+                            node.setSelected(False)
+                        for link in linkList:
+                            link.setHighlighted(False)
+                            link.setSelected(False)
 
+                        requestMode = True
+                        topologyMode = False
+                        spectrumMode = False
 
                 timer -= 1
             elif event.type == pygame.KEYDOWN and requestMode == True:
@@ -163,15 +160,13 @@ def main():
                         
                         previous[1].setSelected(False)
                         user.getLinksSelected().remove(previous)
-
-                        
                         
                         # removing all highlights
                         for node in nodeList:
                             node.setHighlighted(False)
                         for link in linkList:
                             link.setHighlighted(False)
-                        availableLinks = user.getCurrentNode().getLinks()
+                        availableLinks = checkAvailable(user)
                         # set default selected
                         availableLinks[index][0].setHighlighted(True)
                         availableLinks[index][1].setHighlighted(True)
@@ -179,9 +174,9 @@ def main():
 
                         
                 else:
-                    availableLinks = user.getCurrentNode().getLinks()
-                    for link in user.getLinksSelected():
-                        availableLinks.remove(link)
+                    availableLinks = checkAvailable(user)
+                    
+                    
                     # set default selected
                     availableLinks[index][0].setHighlighted(True)
                     availableLinks[index][1].setHighlighted(True)
@@ -216,11 +211,12 @@ def main():
                             availableLinks[index][1].setHighlighted(False)
                             availableLinks[index][0].setSelected(True)
                             availableLinks[index][1].setSelected(True)
-                            user.setLinksSelected(user.getCurrentNode(), availableLinks[index][1])
+                            user.addLink(user.getCurrentNode(), availableLinks[index][1])
 
                             user.setCurrentNode(availableLinks[index][0])
                             index = 0
-                            availableLinks = user.getCurrentNode().getLinks()
+                            availableLinks = checkAvailable(user)
+
                             availableLinks[index][0].setHighlighted(True)
                             availableLinks[index][1].setHighlighted(True)
                         else:
@@ -228,7 +224,7 @@ def main():
                             availableLinks[index][1].setHighlighted(False)
                             availableLinks[index][0].setSelected(True)
                             availableLinks[index][1].setSelected(True)
-                            user.setLinksSelected(user.getCurrentNode(), availableLinks[index][1])
+                            user.addLink(user.getCurrentNode(), availableLinks[index][1])
                             topologyMode = False
                             spectrumMode = True
 
@@ -301,6 +297,14 @@ def displayRequest(DISPLAYSURF, activeRequests, timer):
         text_rect = textsurface.get_rect(center=requestBox.center)
         DISPLAYSURF.blit(textsurface, text_rect)
         
+# checks whether links have been selected and removes from possible routes
+def checkAvailable(user):
+    availableLinks = user.getCurrentNode().getLinks().copy()
+                            
+    for link in user.getLinksSelected():
+        if link in availableLinks:
+            availableLinks.remove(link)
+    return availableLinks
 
 
 # creating fixed test topology
@@ -327,3 +331,7 @@ def createTestTopology():
 
 if __name__ == '__main__':
     main()
+
+
+# Buglist
+# 
