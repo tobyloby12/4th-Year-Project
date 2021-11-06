@@ -1,7 +1,6 @@
 # creating requests
 import random
 from node import *
-import datetime
 
 # requests consist of source node, destination node, bandwidth, time allocated
 
