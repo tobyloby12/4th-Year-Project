@@ -7,7 +7,7 @@ from optical_network_game.user import User
 # For testing Node class
 @pytest.fixture
 def createNode():
-    return Node(0, 'A', 200, 400)
+    return Node(0, 'A', 250, 200)
 
 # For testing Link class
 @pytest.fixture
