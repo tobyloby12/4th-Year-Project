@@ -1,10 +1,15 @@
 # importing important things
 import pygame, sys
 from pygame.locals import *
-from node import *
-from link import *
-from requests import *
-from user import *
+from optical_network_game.node import *
+from optical_network_game.link import *
+from optical_network_game.requests import *
+from optical_network_game.user import *
+
+
+# Buglist
+# out of list request bug idk
+# 
 
 WINDOWWIDTH = 1000
 WINDOWHEIGHT = 600
@@ -91,23 +96,23 @@ def main():
                         SCORE -= 1
                         activeRequests.remove(request)
                 
-                if timer == user.getCurrentRequest().timeStart - user.getCurrentRequest().timeLimit + 1 and user.getCurrentRequest() != None:
-                    user.getLinksSelected().clear()
-                    availableLinks = checkAvailable(user)
-                    if user.getCurrentRequest() != None and requestMode == False:
-                        # go through links and deselect all
-                        user.deselectRequest()
-                        for node in nodeList:
-                            node.setHighlighted(False)
-                            node.setSelected(False)
-                        for link in linkList:
-                            link.setHighlighted(False)
-                            link.setSelected(False)
-
-                        requestMode = True
-                        topologyMode = False
-                        spectrumMode = False
-
+                if user.getCurrentRequest() != None:
+                    if timer == user.getCurrentRequest().timeStart - user.getCurrentRequest().timeLimit + 1:
+                        user.getLinksSelected().clear()
+                        availableLinks = checkAvailable(user)
+                        if user.getCurrentRequest() != None and requestMode == False:
+                            # go through links and deselect all
+                            user.deselectRequest()
+                            for node in nodeList:
+                                node.setHighlighted(False)
+                                node.setSelected(False)
+                            for link in linkList:
+                                link.setHighlighted(False)
+                                link.setSelected(False)
+                            requestMode = True
+                            topologyMode = False
+                            spectrumMode = False
+                print(timer, activeRequests)
                 timer -= 1
             elif event.type == pygame.KEYDOWN and requestMode == True:
                 # TODO
@@ -333,5 +338,3 @@ if __name__ == '__main__':
     main()
 
 
-# Buglist
-# 
