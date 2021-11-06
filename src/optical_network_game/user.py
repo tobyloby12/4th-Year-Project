@@ -28,7 +28,7 @@ class User:
         return self.currentRequest
 
     def setCurrentRequest(self, value):
-        self.currentRequest(value)
+        self.currentRequest = value
 
     def getCurrentNode(self):
         return self.currentNode
@@ -39,8 +39,8 @@ class User:
     def addLink(self, node, link):
         self.linksSelected.append((node, link))
     
-    def setLinksSelected(self, value):
-        self.linksSelected = value
+    # def setLinksSelected(self, value):
+    #     self.linksSelected = value
 
     def getLinksSelected(self):
         return self.linksSelected
