@@ -112,7 +112,7 @@ def main():
                             requestMode = True
                             topologyMode = False
                             spectrumMode = False
-                print(timer, activeRequests)
+                # print(timer, activeRequests)
                 timer -= 1
             elif event.type == pygame.KEYDOWN and requestMode == True:
                 # TODO
@@ -330,7 +330,6 @@ def createTestTopology():
 
     for node in nodeList:
         node.setLinks(linkList)
-
     return nodeList, linkList
 
 
