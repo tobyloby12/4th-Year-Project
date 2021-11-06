@@ -2,6 +2,10 @@ from optical_network_game.link import Link
 from optical_network_game.node import Node
 import pytest
 
+######################################
+# TODO
+# test drawLink function
+######################################
 
 # GIVEN parameters are correct
 # WHEN I create a link
