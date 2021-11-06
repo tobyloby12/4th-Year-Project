@@ -1,6 +1,6 @@
 # creating requests
 import random
-from node import *
+from optical_network_game.node import *
 
 # requests consist of source node, destination node, bandwidth, time allocated
 
@@ -11,7 +11,7 @@ class Request:
         self.sourceNode = SourceNode
         self.destNode = DestNode
         self.bandWidth = BandWidth
-        self.timeLimit = 5
+        self.timeLimit = 15
         self.timeStart = timeStart
         self.timeDeallocated = 5
         self.completed = False
@@ -63,7 +63,7 @@ def generateRequests(listOfNodes, numberOfRequests):
         # randomising bandwidth
         bandwidth = random.randint(1, 5)
         # randomising time start
-        timeStart = 60 - i*1
+        timeStart = 60 - i*10
         # creating 
         request = Request(i, source, destination, bandwidth, timeStart)
         requestsList.append(request)
