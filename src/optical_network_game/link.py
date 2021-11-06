@@ -22,6 +22,11 @@ class Link:
     def getY(self):
         return self.ypos
 
+    def setHighlighted(self, value):
+        self.isHighlighted = value
+
+    def setSelected(self, value):
+        self.isSelected = value
 
     def drawLink(self, display, color):
         if self.isHighlighted == True:
@@ -29,9 +34,3 @@ class Link:
         if self.isSelected == True:
             pygame.draw.line(display, HIGHLIGHTGREEN, (self.node1.xpos, self.node1.ypos), (self.node2.xpos, self.node2.ypos), 10)
         pygame.draw.line(display, color, (self.node1.xpos, self.node1.ypos), (self.node2.xpos, self.node2.ypos), 4)
-
-    def setHighlighted(self, value):
-        self.isHighlighted = value
-
-    def setSelected(self, value):
-        self.isSelected = value
