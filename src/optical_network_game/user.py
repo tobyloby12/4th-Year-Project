@@ -1,5 +1,5 @@
-from requests import *
-from node import *
+from optical_network_game.requests import *
+from optical_network_game.node import *
 
 class User:
     def __init__(self):
