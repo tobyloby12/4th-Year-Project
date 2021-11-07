@@ -50,12 +50,14 @@ class Node:
     def setSelected(self, value):
         self.isSelected = value
 
+    # save the links associated to each node in a list
     def setLinks(self, linkList):
         for link in linkList:
             if self.name == link.node1.name:
                 self.links[link.node2] = link
             elif self.name == link.node2.name:
                 self.links[link.node1] = link
+        # sorts links by descending order of height
         sort_links = sorted(self.links.items(), key=lambda x: x[1].getY(), reverse=False)
         self.links = sort_links
 
