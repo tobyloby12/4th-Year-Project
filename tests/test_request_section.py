@@ -28,6 +28,7 @@ import pytest
 # else the reqeust should be put underneath the lowest request,
 # the timer should start going down and should complete within the correct time frame,
 # the request should be removed when the request has finished its timer,
+# the user should have the correct request selected as shown on the screen
 
 
 
@@ -36,7 +37,8 @@ import pytest
 # THEN the game should respond accordingly; if it is a down key then the request selected should be the one before the
 # arrow key was pressed unless it is the bottom one where it should return to the top, 
 # if it is up then it should be the one above and if it is the top one it should go to the bottom request, 
-# if it is enter then the game should move to the next stage
+# if it is enter then the game should move to the next stage,
+# the user should have the correct request selected as shown on the screen
 
 
 
