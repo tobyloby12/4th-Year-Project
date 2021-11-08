@@ -11,6 +11,7 @@ from optical_network_game.user import *
 ## Buglist
 # out of list request bug idk
 # create requestMode function
+# spectrumMode functionality
 # line 159 redundant user.getCurrentRequest() != None condition?
 # line 269 redundant else statement since everything within it is already called in other key presses?
 # line 314 redundant if statement since currentNode will never be destNode?
