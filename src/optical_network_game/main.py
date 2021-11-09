@@ -55,14 +55,14 @@ colorRequest = BLACK
 
 
 
-def main():
+def main(nodeList, linkList, requestList, user):
     # setting values for different modes the user will be in 
     # the user will initially start by selecting a request
     requestMode = True
     topologyMode = False
     spectrumMode = False
-    # initializing User class as user
-    user = User()
+    # # initializing User class as user
+    # user = User()
     # define global variables: 
     global FPSCLOCK, DISPLAYSURF, SCORE
     # initialize pygame
@@ -87,10 +87,10 @@ def main():
     # initialize score
     SCORE = 0
 
-    # create a list of nodes and links using createTestTopology function
-    nodeList, linkList = createTestTopology()
-    # create requests using list of nodes and defining number of requests
-    requestList = generateRequests(nodeList, 5)
+    # # create a list of nodes and links using createTestTopology function
+    # nodeList, linkList = createTestTopology()
+    # # create requests using list of nodes and defining number of requests
+    # requestList = generateRequests(nodeList, 5)
     # stores the requests available to the user in a list
     activeRequests = []
     # automatically selects the first request in the list when game starts
@@ -462,6 +462,7 @@ def createTestTopology():
 
 
 if __name__ == '__main__':
-    main()
-
-
+    nodeList, linkList = createTestTopology()
+    requestList = generateRequests(nodeList, 5)
+    user = User()
+    main(nodeList, linkList, requestList, user)
