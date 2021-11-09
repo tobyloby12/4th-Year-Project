@@ -46,7 +46,10 @@ import pytest
 # WHEN the request times out
 # THEN it should put the user back into the request mode to select the next request,
 # it should remove the request from the list
-# the user should be able to select other requests
+# the user should be able to select other requests,
+# if a non selected request times out, nothing should happen
+# highlighted and selected links and nodes should be cleared and reset to baseline
+# selected link list should be cleared
 
 
 
