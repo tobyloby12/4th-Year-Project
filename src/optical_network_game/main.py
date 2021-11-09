@@ -38,7 +38,7 @@ TIMERBARHEIGHT = 15
 # test if width of game spaces and margin fully cover the game screen width
 assert WINDOWWIDTH == INCOMINGREQUESTWIDTH + NETWORKTOPOLOGYWIDTH + SELECTEDLINKWIDTH + 4*MARGIN
 # set number of frame resets per second
-FPS = 60
+FPS = 30
 
 # define colours (RED, GREEN, BLUE)
 RED = (255, 0, 0)
@@ -58,7 +58,7 @@ colorRequest = BLACK
 def main(nodeList, linkList, requestList, user):
     # setting values for different modes the user will be in 
     # the user will initially start by selecting a request
-    requestMode = True
+    requestMode = False
     topologyMode = False
     spectrumMode = False
     # # initializing User class as user
@@ -134,9 +134,14 @@ def main(nodeList, linkList, requestList, user):
                 pygame.quit()
                 sys.exit()
 
+            # starting game only when enter is pressed
+            elif event.type == pygame.KEYDOWN and (requestMode == False and topologyMode == False and spectrumMode == False):
+                requestMode = True
+                timer2 = 60
+                
             # sending in requests
             # occurs every second
-            elif event.type == timer_event:
+            elif event.type == timer_event and (requestMode == True or topologyMode == True or spectrumMode == True):
                 # FOR each request in the game
                 for request in requestList:
                     # IF the game timer matches the start time of the request
@@ -149,32 +154,35 @@ def main(nodeList, linkList, requestList, user):
                         request.setBlock(True)
                         SCORE -= 1
                         activeRequests.remove(request)
+
                 # IF user has selected a request
                 if user.getCurrentRequest() != None:
                     # IF selected request expires before it is completed
                     # THEN the links selected by the user thus far is removed and the links the user can choose is reset
-                    if timer == user.getCurrentRequest().timeStart - user.getCurrentRequest().timeLimit + 1:
+                    if timer == user.getCurrentRequest().timeStart - user.getCurrentRequest().timeLimit + 1 and requestMode == False:
                         user.getLinksSelected().clear()
                         availableLinks = checkAvailable(user)
                         # IF user has selected a request and is still trying to service the request when the request expired
                         # THEN the request is deselected, progress in servicing it will be reset, 
                         # user then needs to choose another request
-                        if user.getCurrentRequest() != None and requestMode == False:
-                            # the request is deselcted automatically since it has expired
-                            user.deselectRequest()
-                            # nodes and links that user has selected or is selecting will be removed
-                            for node in nodeList:
-                                node.setHighlighted(False)
-                                node.setSelected(False)
-                            for link in linkList:
-                                link.setHighlighted(False)
-                                link.setSelected(False)
-                            # user is returned to request mode
-                            requestMode = True
-                            topologyMode = False
-                            spectrumMode = False
+                        
+                        # the request is deselcted automatically since it has expired
+                        user.deselectRequest()
+                        # nodes and links that user has selected or is selecting will be removed
+                        for node in nodeList:
+                            node.setHighlighted(False)
+                            node.setSelected(False)
+                        for link in linkList:
+                            link.setHighlighted(False)
+                            link.setSelected(False)
+                        # user is returned to request mode
+                        requestMode = True
+                        topologyMode = False
+                        spectrumMode = False
                     # ELSE when user has selected a request that has not expired, user can still continue to service it
                 # timer countsdown every second
+                    elif timer == user.getCurrentRequest().timeStart - user.getCurrentRequest().timeLimit + 1 and requestMode == True:
+                        user.deselectRequest()
                 timer -= 1
 
             # WHEN user presses a key while selecting a request
@@ -188,7 +196,10 @@ def main(nodeList, linkList, requestList, user):
                     # define number of active requests
                     activeRequestsLength = len(activeRequests)
                     # define the request the user is currently at
-                    requestIndex = activeRequests.index(currentRequest)
+                    if currentRequest in activeRequests:
+                        requestIndex = activeRequests.index(currentRequest)
+                    else:
+                        break
                     # IF DOWN arrow key is pressed
                     # THEN the request below the current one is selected
                     if event.key == pygame.K_DOWN:
@@ -204,7 +215,7 @@ def main(nodeList, linkList, requestList, user):
 
                     # IF UP arrow key is pressed
                     # THEN the request above the current one is selected
-                    if event.key == pygame.K_UP:
+                    elif event.key == pygame.K_UP:
                         # IF UP arrow key is pressed and it is already the first request in the list
                         # THEN the last request in the list is selected
                         if requestIndex == 0:
@@ -217,7 +228,7 @@ def main(nodeList, linkList, requestList, user):
                     
                     # IF ENTER key is pressed
                     # THEN the user moves to the topology space to service the request selected
-                    if event.key == pygame.K_RETURN:
+                    elif event.key == pygame.K_RETURN:
                         requestMode = False
                         topologyMode = True
                         # user automatically starts at the source node of the request
@@ -428,6 +439,7 @@ def displayRequest(DISPLAYSURF, activeRequests, timer):
 def checkAvailable(user):
     # define a copied list of links connected to the current node
     availableLinks = user.getCurrentNode().getLinks().copy()
+
 
     # FOR each selected link
     # IF there is already a selected link in the list of links connected to the current node
