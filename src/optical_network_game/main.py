@@ -9,11 +9,10 @@ from optical_network_game.user import *
 ######################################
 # TODO
 ## Buglist
-# out of list request bug idk
 # create requestMode function
-# line 159 redundant user.getCurrentRequest() != None condition?
-# line 269 redundant else statement since everything within it is already called in other key presses?
-# line 314 redundant if statement since currentNode will never be destNode?
+# spectrumMode functionality
+# line 360 complete
+# when pressing backspace to go to request remains highlighted
 ######################################
 
 # set game window width and height
@@ -34,10 +33,13 @@ REQUESTHEIGHT = 40
 # set height of timer bar for individual requests
 TIMERBARHEIGHT = 15
 
+SPECTRUMBOXHEIGHT = 30
+SPECTRUMBOXWIDTH = 120
+
 # test if width of game spaces and margin fully cover the game screen width
 assert WINDOWWIDTH == INCOMINGREQUESTWIDTH + NETWORKTOPOLOGYWIDTH + SELECTEDLINKWIDTH + 4*MARGIN
 # set number of frame resets per second
-FPS = 60
+FPS = 30
 
 # define colours (RED, GREEN, BLUE)
 RED = (255, 0, 0)
@@ -54,14 +56,14 @@ colorRequest = BLACK
 
 
 
-def main():
+def main(nodeList, linkList, requestList, user):
     # setting values for different modes the user will be in 
     # the user will initially start by selecting a request
-    requestMode = True
+    requestMode = False
     topologyMode = False
     spectrumMode = False
-    # initializing User class as user
-    user = User()
+    # # initializing User class as user
+    # user = User()
     # define global variables: 
     global FPSCLOCK, DISPLAYSURF, SCORE
     # initialize pygame
@@ -86,10 +88,10 @@ def main():
     # initialize score
     SCORE = 0
 
-    # create a list of nodes and links using createTestTopology function
-    nodeList, linkList = createTestTopology()
-    # create requests using list of nodes and defining number of requests
-    requestList = generateRequests(nodeList, 5)
+    # # create a list of nodes and links using createTestTopology function
+    # nodeList, linkList = createTestTopology()
+    # # create requests using list of nodes and defining number of requests
+    # requestList = generateRequests(nodeList, 5)
     # stores the requests available to the user in a list
     activeRequests = []
     # automatically selects the first request in the list when game starts
@@ -109,7 +111,7 @@ def main():
         # draw requests space on the game screen
         drawRequestsScreen(DISPLAYSURF, requestMode)
         # draw spectrum space on the game screen
-        drawSpectrumScreen(DISPLAYSURF, spectrumMode)
+        drawSpectrumScreen(DISPLAYSURF, spectrumMode, user, linkList)
 
         # draw requests on the game screen
         displayRequest(DISPLAYSURF, activeRequests, timer2)
@@ -133,9 +135,14 @@ def main():
                 pygame.quit()
                 sys.exit()
 
+            # starting game only when enter is pressed
+            elif event.type == pygame.KEYDOWN and (requestMode == False and topologyMode == False and spectrumMode == False):
+                requestMode = True
+                timer2 = 60
+                
             # sending in requests
             # occurs every second
-            elif event.type == timer_event:
+            elif event.type == timer_event and (requestMode == True or topologyMode == True or spectrumMode == True):
                 # FOR each request in the game
                 for request in requestList:
                     # IF the game timer matches the start time of the request
@@ -148,32 +155,35 @@ def main():
                         request.setBlock(True)
                         SCORE -= 1
                         activeRequests.remove(request)
+
                 # IF user has selected a request
                 if user.getCurrentRequest() != None:
                     # IF selected request expires before it is completed
                     # THEN the links selected by the user thus far is removed and the links the user can choose is reset
-                    if timer == user.getCurrentRequest().timeStart - user.getCurrentRequest().timeLimit + 1:
+                    if timer == user.getCurrentRequest().timeStart - user.getCurrentRequest().timeLimit + 1 and requestMode == False:
                         user.getLinksSelected().clear()
                         availableLinks = checkAvailable(user)
                         # IF user has selected a request and is still trying to service the request when the request expired
                         # THEN the request is deselected, progress in servicing it will be reset, 
                         # user then needs to choose another request
-                        if user.getCurrentRequest() != None and requestMode == False:
-                            # the request is deselcted automatically since it has expired
-                            user.deselectRequest()
-                            # nodes and links that user has selected or is selecting will be removed
-                            for node in nodeList:
-                                node.setHighlighted(False)
-                                node.setSelected(False)
-                            for link in linkList:
-                                link.setHighlighted(False)
-                                link.setSelected(False)
-                            # user is returned to request mode
-                            requestMode = True
-                            topologyMode = False
-                            spectrumMode = False
+                        
+                        # the request is deselcted automatically since it has expired
+                        user.deselectRequest()
+                        # nodes and links that user has selected or is selecting will be removed
+                        for node in nodeList:
+                            node.setHighlighted(False)
+                            node.setSelected(False)
+                        for link in linkList:
+                            link.setHighlighted(False)
+                            link.setSelected(False)
+                        # user is returned to request mode
+                        requestMode = True
+                        topologyMode = False
+                        spectrumMode = False
                     # ELSE when user has selected a request that has not expired, user can still continue to service it
                 # timer countsdown every second
+                    elif timer == user.getCurrentRequest().timeStart - user.getCurrentRequest().timeLimit + 1 and requestMode == True:
+                        user.deselectRequest()
                 timer -= 1
 
             # WHEN user presses a key while selecting a request
@@ -187,7 +197,10 @@ def main():
                     # define number of active requests
                     activeRequestsLength = len(activeRequests)
                     # define the request the user is currently at
-                    requestIndex = activeRequests.index(currentRequest)
+                    if currentRequest in activeRequests:
+                        requestIndex = activeRequests.index(currentRequest)
+                    else:
+                        break
                     # IF DOWN arrow key is pressed
                     # THEN the request below the current one is selected
                     if event.key == pygame.K_DOWN:
@@ -203,7 +216,7 @@ def main():
 
                     # IF UP arrow key is pressed
                     # THEN the request above the current one is selected
-                    if event.key == pygame.K_UP:
+                    elif event.key == pygame.K_UP:
                         # IF UP arrow key is pressed and it is already the first request in the list
                         # THEN the last request in the list is selected
                         if requestIndex == 0:
@@ -216,7 +229,7 @@ def main():
                     
                     # IF ENTER key is pressed
                     # THEN the user moves to the topology space to service the request selected
-                    if event.key == pygame.K_RETURN:
+                    elif event.key == pygame.K_RETURN:
                         requestMode = False
                         topologyMode = True
                         # user automatically starts at the source node of the request
@@ -345,7 +358,41 @@ def main():
                             topologyMode = False
                             spectrumMode = True
 
+                            # need to include selecting first few slots automatically
+                        
+
+            # when the user is in spectrum mode
+            elif event.type == pygame.KEYDOWN and spectrumMode == True:
+                # if backspace is pressed go back to topology mode
+                # should go back to node before destination node
+                # selected links should be deselected
+                # automatically highlight links
+                # removes the links from user selected links
+                if event.key == pygame.K_BACKSPACE:
+                    topologyMode = True
+                    spectrumMode = False
+                    links_selected = user.getLinksSelected()
+                    user.setCurrentNode(links_selected[-1][0])
+                    links_selected[-1][1].setSelected(False)
+                    user.getCurrentRequest().getDestNode().setSelected(False)
+                    availableLinks = checkAvailable(user)
+                    availableLinks[index][0].setHighlighted(True)
+                    availableLinks[index][1].setHighlighted(True)
+                    user.getLinksSelected().remove(links_selected[-1])
                 
+                # if left is pressed then the selected should be shifted to the left by 1 unless at the most left where it will jump to right
+                elif event.key == pygame.K_LEFT:
+                    pass
+
+                # if right is pressed then the selected should be shifted to the right by 1 unless at the most right where it will jump to left
+                elif event.key == pygame.K_RIGHT:
+                    pass
+
+                # if return is pressed, selected links should be checked for if they are valid and if they are they should be selected and links
+                # should be updated
+                # otherwise an error message should pop up
+                elif event.key == pygame.K_RETURN:
+                    pass
 
 
         # Update portions of the screen for software displays (in this case the entire screen is updated)      
@@ -370,8 +417,11 @@ def drawTopologyScreen(DISPLAYSURF, linkList, nodeList, topologyMode):
     pygame.draw.rect(DISPLAYSURF, color, (MARGIN + INCOMINGREQUESTWIDTH + MARGIN, HEADER, NETWORKTOPOLOGYWIDTH, WINDOWHEIGHT - HEADER - MARGIN), 4)
     for link in linkList:
         link.drawLink(DISPLAYSURF, BLUE)
+        link.drawSpectrum(DISPLAYSURF, link.getX() - SPECTRUMBOXWIDTH/2, link.getY() - SPECTRUMBOXHEIGHT/2)
     for node in nodeList:
         node.drawNode(DISPLAYSURF, BLUE)
+    
+    
 
 # drawing requests screen
 def drawRequestsScreen(DISPLAYSURF, requestMode):
@@ -383,21 +433,56 @@ def drawRequestsScreen(DISPLAYSURF, requestMode):
     pygame.draw.rect(DISPLAYSURF, color, (MARGIN, HEADER, INCOMINGREQUESTWIDTH, WINDOWHEIGHT - HEADER - MARGIN), 4)
 
 # drawing links screen
-def drawSpectrumScreen(DISPLAYSURF, spectrumMode):
+def drawSpectrumScreen(DISPLAYSURF, spectrumMode, user, linkList):
     # highlighting the spectrum space when doing spectrum allocation for easier recognition
     if spectrumMode == True:
         color = RED
     else:
         color = BLACK
-    pygame.draw.rect(DISPLAYSURF, color, (MARGIN + INCOMINGREQUESTWIDTH + MARGIN + NETWORKTOPOLOGYWIDTH + MARGIN, 
-    HEADER, SELECTEDLINKWIDTH, WINDOWHEIGHT - HEADER - MARGIN), 4)
+    spectrumBox = pygame.Rect((MARGIN + INCOMINGREQUESTWIDTH + MARGIN + NETWORKTOPOLOGYWIDTH + MARGIN, 
+    HEADER, SELECTEDLINKWIDTH, WINDOWHEIGHT - HEADER - MARGIN))
+    pygame.draw.rect(DISPLAYSURF, color, spectrumBox, 4)
 
+    # drawing spectrum selected and unselected links
+    selectedLinks = []
+    for entry in user.getLinksSelected():
+        selectedLinks.append(entry[1])
+    unselectedLinks = linkList.copy()
+    for link in linkList:
+        if link in selectedLinks:
+            unselectedLinks.remove(link)
+    # selected text
+    pygame.font.init()
+    myfont = pygame.font.SysFont('Calibri', 27)
+    textsurface = myfont.render(f'Selected Links:', False, WHITE)
+    text_rect = textsurface.get_rect(center=spectrumBox.center)
+    DISPLAYSURF.blit(textsurface, (text_rect[0], HEADER + MARGIN))
+    
+    # drawing selected links
+    if selectedLinks != []:
+        for i in range(len(selectedLinks)):
+            textsurface = myfont.render(f'{selectedLinks[i].getName()}', False, WHITE)
+            DISPLAYSURF.blit(textsurface, (MARGIN + INCOMINGREQUESTWIDTH + MARGIN + NETWORKTOPOLOGYWIDTH + MARGIN + 6, HEADER + MARGIN + (i + 1)*(SPECTRUMBOXHEIGHT + 5)))
+            selectedLinks[i].drawSpectrum(DISPLAYSURF, MARGIN + INCOMINGREQUESTWIDTH + MARGIN + NETWORKTOPOLOGYWIDTH + MARGIN + 6 + 35, HEADER + MARGIN + (i + 1)*(SPECTRUMBOXHEIGHT + 5))
+
+    # unselected text
+    textsurface = myfont.render(f'Unselected Links:', False, WHITE)
+    text_rect = textsurface.get_rect(center=spectrumBox.center)
+    DISPLAYSURF.blit(textsurface, (text_rect[0], HEADER + MARGIN + (len(selectedLinks) + 1)*(SPECTRUMBOXHEIGHT + 5)))
+
+    # drawing unselected links
+    if unselectedLinks != []:
+        for i in range(len(unselectedLinks)):
+            textsurface = myfont.render(f'{unselectedLinks[i].getName()}', False, WHITE)
+            DISPLAYSURF.blit(textsurface, (MARGIN + INCOMINGREQUESTWIDTH + MARGIN + NETWORKTOPOLOGYWIDTH + MARGIN + 6, HEADER + MARGIN + (len(selectedLinks) + 1)*(SPECTRUMBOXHEIGHT + 5) + (i + 1)*(SPECTRUMBOXHEIGHT + 5)))
+            unselectedLinks[i].drawSpectrum(DISPLAYSURF, MARGIN + INCOMINGREQUESTWIDTH + MARGIN + NETWORKTOPOLOGYWIDTH + MARGIN + 6 + 35, HEADER + MARGIN + (len(selectedLinks) + 1)*(SPECTRUMBOXHEIGHT + 5) + (i + 1)*(SPECTRUMBOXHEIGHT + 5))
+    
 # drawing clock
 def displayTimer(DISPLAYSURF, time):
     pygame.font.init()
     myfont = pygame.font.SysFont('Calibri', 30)
     textsurface = myfont.render(f'Time: {str(time)}', False, WHITE)
-    DISPLAYSURF.blit(textsurface, (WINDOWWIDTH-150, 15))
+    DISPLAYSURF.blit(textsurface, (WINDOWWIDTH - 150, 15))
 
 # displays request and timers
 def displayRequest(DISPLAYSURF, activeRequests, timer):
@@ -428,6 +513,7 @@ def checkAvailable(user):
     # define a copied list of links connected to the current node
     availableLinks = user.getCurrentNode().getLinks().copy()
 
+
     # FOR each selected link
     # IF there is already a selected link in the list of links connected to the current node
     # THEN remove that selected link                   
@@ -440,10 +526,10 @@ def checkAvailable(user):
 # creating fixed test topology
 def createTestTopology():
     # testNodes
-    nodeA = Node(0, 'A', 250, 200)
-    nodeB = Node(1, 'B', 250, 400)
-    nodeC = Node(2, 'C', 600, 200)
-    nodeD = Node(3, 'D', 600, 400)
+    nodeA = Node(0, 'A', 300, 200)
+    nodeB = Node(1, 'B', 300, 400)
+    nodeC = Node(2, 'C', 650, 200)
+    nodeD = Node(3, 'D', 650, 400)
     # testLinks
     link1 = Link(0, nodeA, nodeB)
     link2 = Link(1, nodeB, nodeC)
@@ -461,6 +547,7 @@ def createTestTopology():
 
 
 if __name__ == '__main__':
-    main()
-
-
+    nodeList, linkList = createTestTopology()
+    requestList = generateRequests(nodeList, 5)
+    user = User()
+    main(nodeList, linkList, requestList, user)
