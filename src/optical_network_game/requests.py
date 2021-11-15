@@ -29,7 +29,7 @@ class Request:
     def complete(self, time):
         self.completed = True
         self.timeCompleted = time
-        self.timeDeallocated = time - self.timeDeallocated
+        self.timeDeallocated = time - 5
 
     def getTimeStart(self):
         return self.timeStart
