@@ -10,9 +10,8 @@ from optical_network_game.user import *
 # TODO
 ## Buglist
 # create requestMode function
-# spectrumMode functionality
-# line 360 complete
-# when pressing backspace to go to request remains highlighted
+# BUG can loop into same node so need to remove that possibility
+# graying out of impossible links
 ######################################
 
 # set game window width and height
@@ -127,6 +126,12 @@ def main(nodeList, linkList, requestList, user):
             user.selectRequest(activeRequests[0])
             currentRequest = user.getCurrentRequest()
 
+        if (timer < requestList[-1].getTimeStart() and activeRequests == []) or timer == 0:
+            drawEndScreen(timer)
+
+        if requestMode == False and topologyMode == False and spectrumMode == False:
+            drawStartScreen()
+        
         # timer2 decreases per frame to allow smooth decrease of timer bar width
         timer2 -= 1/FPS
         # event handling
@@ -134,8 +139,7 @@ def main(nodeList, linkList, requestList, user):
             # IF user closes the game screen
             # THEN closes and halts the game
             if event.type == QUIT:
-                pygame.quit()
-                sys.exit()
+                endGame()
 
             # starting game only when enter is pressed
             elif event.type == pygame.KEYDOWN and (requestMode == False and topologyMode == False and spectrumMode == False):
@@ -439,10 +443,12 @@ def main(nodeList, linkList, requestList, user):
                             if link.getSpectrumHighlighted()[i] == 1:
                                 if link.getSpectrum()[i] == 1:
                                     # create error screen
+                                    DISPLAYSURF.fill(RED)
+                                    pygame.display.update()
                                     print("error")
                                     possible = False
                     if possible == True:
-                        completions.append((request, user.getLinksSelected().copy(), link.getSpectrumHighlighted().copy()))
+                        completions.append((user.getCurrentRequest(), user.getLinksSelected().copy(), link.getSpectrumHighlighted().copy()))
                         for link in linksSelected:
                             newSelected = [sum(x) for x in zip(link.getSpectrum(), link.getSpectrumHighlighted())]
                             link.setSpectrum(newSelected)
@@ -450,6 +456,7 @@ def main(nodeList, linkList, requestList, user):
                             link.setSpectrumHighlighted(highlightedSpectrum)
                         # throw back into request mode and add point and deselect highlighted spectrum, remove request
                         SCORE += 1
+                        user.getCurrentRequest().complete()
                         activeRequests.remove(user.getCurrentRequest())
                         user.getCurrentRequest().setTimeAllocated(timer)
                         availableLinks, requestMode, topologyMode, spectrumMode = clearAll(user, nodeList, linkList)
@@ -630,6 +637,32 @@ def createTestTopology():
     for node in nodeList:
         node.setLinks(linkList)
     return nodeList, linkList
+
+def drawEndScreen(timer):
+    DISPLAYSURF.fill(GRAY)
+    pygame.font.init()
+    myfont = pygame.font.SysFont('Calibri', 30)
+    scoreBox = pygame.Rect(0, 0, WINDOWWIDTH, WINDOWHEIGHT)
+    textsurface = myfont.render(f'Final Score: {str(SCORE + timer)}', False, WHITE)
+    text_rect = textsurface.get_rect(center=scoreBox.center)
+    DISPLAYSURF.blit(textsurface, text_rect)
+    pygame.display.update()
+    pygame.time.wait(10000)
+    endGame()
+
+def drawStartScreen():
+    DISPLAYSURF.fill(GRAY)
+    pygame.font.init()
+    myfont = pygame.font.SysFont('Calibri', 30)
+    scoreBox = pygame.Rect(0, 0, WINDOWWIDTH, WINDOWHEIGHT)
+    textsurface = myfont.render(f'Press any key to start', False, WHITE)
+    text_rect = textsurface.get_rect(center=scoreBox.center)
+    DISPLAYSURF.blit(textsurface, text_rect)
+    pygame.display.update()
+
+def endGame():
+    pygame.quit()
+    sys.exit()
 
 
 if __name__ == '__main__':

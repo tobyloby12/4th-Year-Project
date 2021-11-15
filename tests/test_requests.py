@@ -37,10 +37,8 @@ def test_requestGetters(createRequest):
 # THEN completed should be true, time completed should beset and time deallocated should be set
 def test_completeRequest(createRequest):
     testRequest, node1, node2 = createRequest
-    testRequest.complete(40)
+    testRequest.complete()
     assert testRequest.completed == True
-    assert testRequest.timeCompleted  == 40
-    assert testRequest.timeDeallocated == 35
 
 # GIVEN a list of nodes is created
 # WHEN requests are generated

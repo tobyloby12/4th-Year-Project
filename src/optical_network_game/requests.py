@@ -16,7 +16,6 @@ class Request:
         self.timeAllocated = 0
         self.timeDeallocated = self.timeAllocated - 5
         self.completed = False
-        self.timeCompleted = None
         self.blocked = False
         self.isSelected = False
 
@@ -26,10 +25,8 @@ class Request:
         Time Deallocate: {self.timeDeallocated}'''
 
     # request has been completed
-    def complete(self, time):
+    def complete(self):
         self.completed = True
-        self.timeCompleted = time
-        self.timeDeallocated = time - 5
 
     def getTimeStart(self):
         return self.timeStart
@@ -50,6 +47,12 @@ class Request:
     def getSelected(self):
         return self.isSelected
 
+    def getComplete(self):
+        return self.completed
+
+    def getBlocked(self):
+        return self.blocked
+
     def getBandwidth(self):
         return self.bandWidth
 
@@ -59,6 +62,9 @@ class Request:
 
     def getTimeDeallocated(self):
         return self.timeDeallocated
+    
+    def getTimeStart(self):
+        return self.timeStart
 
 def generateRequests(listOfNodes, numberOfRequests):
     requestsList = []
