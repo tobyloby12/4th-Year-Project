@@ -8,6 +8,7 @@ WHITE = (255, 255, 255)
 GRAY = (100, 100, 100)
 RED = (255, 0, 0)
 ORANGE = (255, 128, 0)
+GREEN = (0, 255, 0)
 NUMBEROFSLOTS = 5
 SPECTRUMBOXHEIGHT = 30
 SPECTRUMBOXWIDTH = 150
@@ -23,6 +24,7 @@ class Link:
         self.isSelected = False
         self.xpos = (node1.getX() + node2.getX())/2
         self.ypos = (node1.getY() + node2.getY())/2
+        self.spectrumHighlighted = [0]*NUMBEROFSLOTS
 
     def getName(self):
         return self.name
@@ -38,6 +40,12 @@ class Link:
 
     def setSpectrum(self, value):
         self.spectrum = value
+
+    def getSpectrumHighlighted(self):
+        return self.spectrumHighlighted
+
+    def setSpectrumHighlighted(self, value):
+        self.spectrumHighlighted = value
 
     def setHighlighted(self, value):
         self.isHighlighted = value
@@ -67,9 +75,15 @@ class Link:
                 color = GRAY
             else:
                 color = RED
-            slotBox = pygame.Rect((x) + i*slotWidth, y, slotWidth, SPECTRUMBOXHEIGHT)
+            slotBox = pygame.Rect(x + i*slotWidth, y, slotWidth, SPECTRUMBOXHEIGHT)
             pygame.draw.rect(display, color, slotBox)
 
-            slotBox = pygame.Rect((x) + i*slotWidth, y, slotWidth, SPECTRUMBOXHEIGHT)
+            slotBox = pygame.Rect(x + i*slotWidth, y, slotWidth, SPECTRUMBOXHEIGHT)
             pygame.draw.rect(display, BLACK, slotBox, 4)
+            if self.spectrumHighlighted[i] == 1:
+                for j in range(0, SPECTRUMBOXHEIGHT, 4):
+                    pygame.draw.line(display, GREEN, (x + i*slotWidth, y + j), (x + i*slotWidth + j, y))
+                    pygame.draw.line(display, GREEN, (x + i*slotWidth + j, y + SPECTRUMBOXHEIGHT - 1), (x + i*slotWidth + SPECTRUMBOXHEIGHT - 1, y + j))
+            else:
+                pass
             

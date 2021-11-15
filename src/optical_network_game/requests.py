@@ -13,7 +13,8 @@ class Request:
         self.bandWidth = BandWidth
         self.timeLimit = 15
         self.timeStart = timeStart
-        self.timeDeallocated = 5
+        self.timeAllocated = 0
+        self.timeDeallocated = self.timeAllocated - 5
         self.completed = False
         self.timeCompleted = None
         self.blocked = False
@@ -48,6 +49,16 @@ class Request:
 
     def getSelected(self):
         return self.isSelected
+
+    def getBandwidth(self):
+        return self.bandWidth
+
+    def setTimeAllocated(self, value):
+        self.timeAllocated = value
+        self.timeDeallocated = value - 5
+
+    def getTimeDeallocated(self):
+        return self.timeDeallocated
 
 def generateRequests(listOfNodes, numberOfRequests):
     requestsList = []

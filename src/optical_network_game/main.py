@@ -32,7 +32,7 @@ HEADER = 50
 REQUESTHEIGHT = 40
 # set height of timer bar for individual requests
 TIMERBARHEIGHT = 15
-
+NUMBEROFSLOTS = 5
 SPECTRUMBOXHEIGHT = 30
 SPECTRUMBOXWIDTH = 120
 
@@ -49,6 +49,7 @@ BLUE = (0, 0, 255)
 BLACK = (0, 0, 0)
 ORANGE = (255, 128, 0)
 LIGHTGRAY = (150, 150, 150)
+GREEN = (0, 255, 0)
 # idk what this is
 BGCOLOR = GRAY
 # defined variable for colouring selected and unselected requests
@@ -62,6 +63,7 @@ def main(nodeList, linkList, requestList, user):
     requestMode = False
     topologyMode = False
     spectrumMode = False
+    completions = []
     # # initializing User class as user
     # user = User()
     # define global variables: 
@@ -149,37 +151,36 @@ def main(nodeList, linkList, requestList, user):
                     # THEN the request becomes active
                     if timer == request.timeStart:
                         activeRequests.append(request)
+                
+                for request in activeRequests:
                     # IF the game timer matches the end time of the request (calculated based on time limit of request)
                     # THEN the request is considered blocked and score decreases. Request is also de-activated
-                    elif timer == request.timeStart - request.timeLimit + 1:
+                    if timer == request.timeStart - request.timeLimit + 1:
                         request.setBlock(True)
                         SCORE -= 1
-                        activeRequests.remove(request)
+                        try:
+                            activeRequests.remove(request)
+                        except:
+                            pass
+
+                for curr_request, link_list, spectrum in completions:
+                    if timer == curr_request.getTimeDeallocated():
+                        for link in link_list:
+                            spectrumCopy = link[1].getSpectrum().copy()
+                            for i, slot in enumerate(spectrum):
+                                if slot == 1:
+                                    spectrumCopy[i] = 0
+
+                            link[1].setSpectrum(spectrumCopy)
 
                 # IF user has selected a request
                 if user.getCurrentRequest() != None:
                     # IF selected request expires before it is completed
                     # THEN the links selected by the user thus far is removed and the links the user can choose is reset
                     if timer == user.getCurrentRequest().timeStart - user.getCurrentRequest().timeLimit + 1 and requestMode == False:
-                        user.getLinksSelected().clear()
-                        availableLinks = checkAvailable(user)
-                        # IF user has selected a request and is still trying to service the request when the request expired
-                        # THEN the request is deselected, progress in servicing it will be reset, 
-                        # user then needs to choose another request
+                        availableLinks, requestMode, topologyMode, spectrumMode = clearAll(user, nodeList, linkList)
                         
-                        # the request is deselcted automatically since it has expired
-                        user.deselectRequest()
-                        # nodes and links that user has selected or is selecting will be removed
-                        for node in nodeList:
-                            node.setHighlighted(False)
-                            node.setSelected(False)
-                        for link in linkList:
-                            link.setHighlighted(False)
-                            link.setSelected(False)
-                        # user is returned to request mode
-                        requestMode = True
-                        topologyMode = False
-                        spectrumMode = False
+
                     # ELSE when user has selected a request that has not expired, user can still continue to service it
                 # timer countsdown every second
                     elif timer == user.getCurrentRequest().timeStart - user.getCurrentRequest().timeLimit + 1 and requestMode == True:
@@ -249,9 +250,12 @@ def main(nodeList, linkList, requestList, user):
                     # IF BACKSPACE key is pressed and the user is at the source node
                     # THEN the user moves back to selecting a request, highlights will be reset
                     if user.getCurrentNode() == user.getCurrentRequest().getSourceNode():
-                        user.getCurrentNode().setSelected(False)
-                        user.getCurrentNode().getLinks()[0][0].setHighlighted(False)
-                        user.getCurrentNode().getLinks()[0][1].setHighlighted(False)
+                        for node in nodeList:
+                            node.setHighlighted(False)
+                            node.setSelected(False)
+                        for link in linkList:
+                            link.setHighlighted(False)
+                            link.setSelected(False)
                         requestMode = True
                         topologyMode = False
                     # IF BACKSPACE key is pressed and the user is not at the source node
@@ -359,7 +363,14 @@ def main(nodeList, linkList, requestList, user):
                             spectrumMode = True
 
                             # need to include selecting first few slots automatically
-                        
+                            bandwidth = user.getCurrentRequest().getBandwidth()
+                            linksSelected = [link[1] for link in user.getLinksSelected()]
+                            highlightedSpectrum = [0]*NUMBEROFSLOTS
+                            for i in range(bandwidth):
+                                highlightedSpectrum[i] = 1
+                            for link in linksSelected:
+                                link.setSpectrumHighlighted(highlightedSpectrum)
+                            spectrumIndex = 0
 
             # when the user is in spectrum mode
             elif event.type == pygame.KEYDOWN and spectrumMode == True:
@@ -371,6 +382,12 @@ def main(nodeList, linkList, requestList, user):
                 if event.key == pygame.K_BACKSPACE:
                     topologyMode = True
                     spectrumMode = False
+
+                    linksSelected = [link[1] for link in user.getLinksSelected()]
+                    highlightedSpectrum = [0]*NUMBEROFSLOTS
+                    for link in linksSelected:
+                        link.setSpectrumHighlighted(highlightedSpectrum)
+
                     links_selected = user.getLinksSelected()
                     user.setCurrentNode(links_selected[-1][0])
                     links_selected[-1][1].setSelected(False)
@@ -379,20 +396,64 @@ def main(nodeList, linkList, requestList, user):
                     availableLinks[index][0].setHighlighted(True)
                     availableLinks[index][1].setHighlighted(True)
                     user.getLinksSelected().remove(links_selected[-1])
-                
+                    
+
                 # if left is pressed then the selected should be shifted to the left by 1 unless at the most left where it will jump to right
                 elif event.key == pygame.K_LEFT:
-                    pass
+                    bandwidth = user.getCurrentRequest().getBandwidth()
+                    if spectrumIndex == 0:
+                        spectrumIndex = NUMBEROFSLOTS - bandwidth
+                    else:
+                        spectrumIndex -= 1
+                    highlightedSpectrum = [0]*5
+                    linksSelected = [link[1] for link in user.getLinksSelected()]
+                    for i in range(bandwidth):
+                        highlightedSpectrum[i + spectrumIndex] = 1
+                    for link in linksSelected:
+                        link.setSpectrumHighlighted(highlightedSpectrum)
+
 
                 # if right is pressed then the selected should be shifted to the right by 1 unless at the most right where it will jump to left
                 elif event.key == pygame.K_RIGHT:
-                    pass
+                    bandwidth = user.getCurrentRequest().getBandwidth()
+                    if spectrumIndex == NUMBEROFSLOTS - bandwidth:
+                        spectrumIndex = 0
+                    else:
+                        spectrumIndex += 1
+                    highlightedSpectrum = [0]*5
+                    linksSelected = [link[1] for link in user.getLinksSelected()]
+                    for i in range(bandwidth):
+                        highlightedSpectrum[i + spectrumIndex] = 1
+                    for link in linksSelected:
+                        link.setSpectrumHighlighted(highlightedSpectrum)
 
                 # if return is pressed, selected links should be checked for if they are valid and if they are they should be selected and links
                 # should be updated
                 # otherwise an error message should pop up
                 elif event.key == pygame.K_RETURN:
-                    pass
+                    # check that there are no conflicts
+                    linksSelected = [link[1] for link in user.getLinksSelected()]
+                    possible = True
+                    for link in linksSelected:
+                        for i in range(NUMBEROFSLOTS):
+                            if link.getSpectrumHighlighted()[i] == 1:
+                                if link.getSpectrum()[i] == 1:
+                                    # create error screen
+                                    print("error")
+                                    possible = False
+                    if possible == True:
+                        completions.append((request, user.getLinksSelected().copy(), link.getSpectrumHighlighted().copy()))
+                        for link in linksSelected:
+                            newSelected = [sum(x) for x in zip(link.getSpectrum(), link.getSpectrumHighlighted())]
+                            link.setSpectrum(newSelected)
+                            highlightedSpectrum = [0]*5
+                            link.setSpectrumHighlighted(highlightedSpectrum)
+                        # throw back into request mode and add point and deselect highlighted spectrum, remove request
+                        SCORE += 1
+                        activeRequests.remove(user.getCurrentRequest())
+                        user.getCurrentRequest().setTimeAllocated(timer)
+                        availableLinks, requestMode, topologyMode, spectrumMode = clearAll(user, nodeList, linkList)
+                        
 
 
         # Update portions of the screen for software displays (in this case the entire screen is updated)      
@@ -470,7 +531,7 @@ def drawSpectrumScreen(DISPLAYSURF, spectrumMode, user, linkList):
     text_rect = textsurface.get_rect(center=spectrumBox.center)
     DISPLAYSURF.blit(textsurface, (text_rect[0], HEADER + MARGIN + (len(selectedLinks) + 1)*(SPECTRUMBOXHEIGHT + 5)))
 
-    # drawing unselected links
+    # drawing unselected links nb 
     if unselectedLinks != []:
         for i in range(len(unselectedLinks)):
             textsurface = myfont.render(f'{unselectedLinks[i].getName()}', False, WHITE)
@@ -522,6 +583,31 @@ def checkAvailable(user):
             availableLinks.remove(link)
     return availableLinks
 
+
+def clearAll(user, nodeList, linkList):
+    user.getLinksSelected().clear()
+    availableLinks = checkAvailable(user)
+    # IF user has selected a request and is still trying to service the request when the request expired
+    # THEN the request is deselected, progress in servicing it will be reset, 
+    # user then needs to choose another request
+    
+    # the request is deselcted automatically since it has expired
+    user.deselectRequest()
+    # nodes and links that user has selected or is selecting will be removed
+    highlighted = [0]*NUMBEROFSLOTS
+    for node in nodeList:
+        node.setHighlighted(False)
+        node.setSelected(False)
+    for link in linkList:
+        link.setHighlighted(False)
+        link.setSelected(False)
+
+        link.setSpectrumHighlighted(highlighted)
+    # user is returned to request mode
+    requestMode = True
+    topologyMode = False
+    spectrumMode = False
+    return availableLinks, requestMode, topologyMode, spectrumMode
 
 # creating fixed test topology
 def createTestTopology():
