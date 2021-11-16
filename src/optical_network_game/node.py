@@ -47,8 +47,14 @@ class Node:
     def setHighlighted(self, value):
         self.isHighlighted = value
 
+    def getHighlighted(self):
+        return self.isHighlighted
+
     def setSelected(self, value):
         self.isSelected = value
+
+    def getSelected(self):
+        return self.isSelected
 
     # save the links associated to each node in a list
     def setLinks(self, linkList):
@@ -63,6 +69,9 @@ class Node:
 
     def getLinks(self):
         return self.links
+    
+    def getSource(self):
+        return self.isSource
 
     
     def setSource(self, value):

@@ -52,6 +52,9 @@ class Link:
 
     def setSelected(self, value):
         self.isSelected = value
+    
+    def getSelected(self):
+        return self.isSelected
 
     def drawLink(self, display, color):
         if self.isHighlighted == True:

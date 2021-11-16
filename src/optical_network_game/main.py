@@ -8,9 +8,8 @@ from optical_network_game.user import *
 
 ######################################
 # TODO
-## Buglist
-# create requestMode function
-# BUG can loop into same node so need to remove that possibility
+# printing error messages
+# Buglist
 # graying out of impossible links
 ######################################
 
@@ -285,8 +284,9 @@ def main(nodeList, linkList, requestList, user):
                         # refreshes the links user can choose
                         availableLinks = checkAvailable(user)
                         # the first link and adjacent node connected to the current node (in the list) will be automatically highlighted
-                        availableLinks[index][0].setHighlighted(True)
-                        availableLinks[index][1].setHighlighted(True)
+                        if availableLinks != []:
+                            availableLinks[index][0].setHighlighted(True)
+                            availableLinks[index][1].setHighlighted(True)
                 
                 # ELSE IF any button except BACKSPACE is pressed
                 else:
@@ -294,8 +294,12 @@ def main(nodeList, linkList, requestList, user):
                     availableLinks = checkAvailable(user)
                     
                     # the first link and adjacent node connected to the current node (in the list) will be automatically highlighted
-                    availableLinks[index][0].setHighlighted(True)
-                    availableLinks[index][1].setHighlighted(True)
+                    if availableLinks != []:
+                        availableLinks[index][0].setHighlighted(True)
+                        availableLinks[index][1].setHighlighted(True)
+                    else:
+                        DISPLAYSURF.fill(RED)
+                        
 
                 # IF UP arrow key is pressed
                 # THEN the link above the current one is selected
@@ -351,8 +355,34 @@ def main(nodeList, linkList, requestList, user):
                             # links the user can choose are refreshed
                             availableLinks = checkAvailable(user)
                             # the first link and adjacent node connected to the current node (in the list) will be automatically highlighted
-                            availableLinks[index][0].setHighlighted(True)
-                            availableLinks[index][1].setHighlighted(True)
+                            if availableLinks != []:
+                                availableLinks[index][0].setHighlighted(True)
+                                availableLinks[index][1].setHighlighted(True)
+                            else:
+                                # undo selection
+                                # define previous node and link pair from selected links list
+                                previous = user.getLinksSelected()[-1]
+                                # deselects the current node user is at
+                                user.getCurrentNode().setSelected(False)
+                                # selects the pervious node user was at
+                                user.setCurrentNode(previous[0])
+
+                                # deselects the link user chose to get to the current node
+                                previous[1].setSelected(False)
+                                # removes the node and link pair from the selected links list
+                                user.getLinksSelected().remove(previous)
+                                
+                                # removing all highlights (makes it easier since only highlights will be where user is at)
+                                for node in nodeList:
+                                    node.setHighlighted(False)
+                                for link in linkList:
+                                    link.setHighlighted(False)
+                                # refreshes the links user can choose
+                                availableLinks = checkAvailable(user)
+                                availableLinks[index][0].setHighlighted(True)
+                                availableLinks[index][1].setHighlighted(True)
+                                DISPLAYSURF.fill(RED)
+
                         # ELSE IF the selected link moves the user to the destination node
                         # THEN the link and node is de-highlighted and set to selected,
                         # user moves to the spectrum space for spectrum allocation
@@ -579,15 +609,25 @@ def displayRequest(DISPLAYSURF, activeRequests, timer):
 # user will not be able to select links that have already been selected
 def checkAvailable(user):
     # define a copied list of links connected to the current node
-    availableLinks = user.getCurrentNode().getLinks().copy()
+    # availableLinks = user.getCurrentNode().getLinks().copy()
+    # print("available links: " + str(availableLinks))
+    # print("user links:" + str(user.getLinksSelected()))
+    availableLinks = []
+    for entry in user.getCurrentNode().getLinks():
+        if (entry[1].getSelected() == False or entry[0].getSelected() == False) and entry[0].getSource() == False:
+            availableLinks.append(entry)
 
-
-    # FOR each selected link
-    # IF there is already a selected link in the list of links connected to the current node
-    # THEN remove that selected link                   
-    for link in user.getLinksSelected():
-        if link in availableLinks:
-            availableLinks.remove(link)
+    # # FOR each selected link
+    # # IF there is already a selected link in the list of links connected to the current node
+    # # THEN remove that selected link                   
+    # for entry in user.getLinksSelected():
+    #     for available in availableLinks:
+    #         if entry[1] == available[1] or entry[0] == available[0]:
+    #             try:
+    #                 availableLinks.remove(entry)
+    #             except:
+    #                 print("Dead end")
+            
     return availableLinks
 
 
@@ -647,8 +687,9 @@ def drawEndScreen(timer):
     text_rect = textsurface.get_rect(center=scoreBox.center)
     DISPLAYSURF.blit(textsurface, text_rect)
     pygame.display.update()
-    pygame.time.wait(10000)
-    endGame()
+    for event in pygame.event.get():
+        if event.type == pygame.KEYDOWN:
+            endGame()
 
 def drawStartScreen():
     DISPLAYSURF.fill(GRAY)
