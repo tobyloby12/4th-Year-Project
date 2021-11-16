@@ -32,6 +32,12 @@ class Link:
     def getX(self):
         return self.xpos
 
+    def getNode1(self):
+        return self.node1
+
+    def getNode2(self):
+        return self.node2
+
     def getY(self):
         return self.ypos
 
