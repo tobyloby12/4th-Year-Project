@@ -9,6 +9,7 @@ from optical_network_game.user import *
 ######################################
 # TODO
 # printing error messages
+# visualise deallocation time for spectrum (MAYBE)
 # Buglist
 # graying out of impossible links
 ######################################
@@ -688,7 +689,7 @@ def drawEndScreen(timer):
     DISPLAYSURF.blit(textsurface, text_rect)
     pygame.display.update()
     for event in pygame.event.get():
-        if event.type == pygame.KEYDOWN:
+        if event.type == pygame.KEYDOWN or event.type == pygame.QUIT:
             endGame()
 
 def drawStartScreen():

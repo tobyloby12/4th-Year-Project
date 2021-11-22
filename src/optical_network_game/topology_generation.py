@@ -71,7 +71,7 @@ def generateLinks(maxLinksPerNode, nodeList):
     linkList = []
     i = 0
     for node in nodeList:
-        maxLinks = random.randint(1, maxLinksPerNode)
+        maxLinks = random.randint(2, maxLinksPerNode)
         nodeListCopy = nodeList.copy()
         nodeListCopy.remove(node)
         for link in linkList:
@@ -101,7 +101,7 @@ pygame.display.set_caption("Topology")
 clock = pygame.time.Clock()     ## For syncing the FPS
 
 nodeList = generatingNodes(8)
-linkList = generateLinks(2, nodeList)
+linkList = generateLinks(3, nodeList)
 
 ## Game loop
 running = True
