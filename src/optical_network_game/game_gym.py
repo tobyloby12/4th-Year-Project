@@ -113,27 +113,7 @@ class game_gym(gym.Env):
 
 
     def step(self, action):
-        for event in pygame.event.get():
-            # If game screen is closed, Pygame is stopped
-            if event.type == pygame.QUIT:
-                self.endGame()
-        # Updates requests and reduces timer every second
-            elif event.type == self.timer_event:
-                self.requestUpdate()
-
-            elif event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_UP:
-                    action = 0
-                elif event.key == pygame.K_DOWN:
-                    action = 1
-                elif event.key == pygame.K_LEFT:
-                    action = 2
-                elif event.key == pygame.K_RIGHT:
-                    action = 3
-                elif event.key == pygame.K_RETURN:
-                    action = 4
-                elif event.key == pygame.K_BACKSPACE:
-                    action = 5
+        
 
 
 
@@ -152,28 +132,31 @@ class game_gym(gym.Env):
 
         return obs, self.SCORE, self.done, []
     
-    # def get_action(self):
+    def get_action(self):
         
-    #     # keys = pygame.key.get_pressed()
-        
-    #     # if keys != None: 
-    #     #     if keys[pygame.K_UP]:
-    #     #         return 0
-    #     #     elif keys[pygame.K_DOWN]:
-    #     #         return 1
-    #     #     elif keys[pygame.K_LEFT]:
-    #     #         return 2
-    #     #     elif keys[pygame.K_RIGHT]:
-    #     #         return 3
-    #     #     elif keys[pygame.K_RETURN]:
-    #     #         return 4
-    #     #     elif keys[pygame.K_BACKSPACE]:
-    #     #         return 5
-    #     #     else:
-    #     #         return 6
+         for event in pygame.event.get():
+            # If game screen is closed, Pygame is stopped
+            if event.type == pygame.QUIT:
+                self.endGame()
+        # Updates requests and reduces timer every second
+            elif event.type == self.timer_event:
+                self.requestUpdate()
 
-    #     return 0
-            
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_UP:
+                    return 0
+                elif event.key == pygame.K_DOWN:
+                    return 1
+                elif event.key == pygame.K_LEFT:
+                    return 2
+                elif event.key == pygame.K_RIGHT:
+                    return 3
+                elif event.key == pygame.K_RETURN:
+                    return 4
+                elif event.key == pygame.K_BACKSPACE:
+                    return 5
+                else:
+                    return 0
 
 
     def render(self):
@@ -806,8 +789,7 @@ def main():
     # check_env(eveon, warn=True)
     eveon.render()
     while True:
-        # action = eveon.get_action()
-        action = 6
+        action = eveon.get_action()
         observation, reward, done, info = eveon.step(action)
         if done == True:
             eveon.endGame()
