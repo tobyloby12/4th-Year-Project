@@ -6,7 +6,11 @@ import gym
 import pygame, sys
 from pygame.locals import *
 from gym import spaces
-# from stable_baselines.common.env_checker import check_env
+from stable_baselines.common.env_checker import check_env
+import numpy as np
+from stable_baselines.common.vec_env import DummyVecEnv
+from stable_baselines.deepq.policies import MlpPolicy
+from stable_baselines import DQN
 
 class game_gym(gym.Env):
     '''
@@ -96,12 +100,22 @@ class game_gym(gym.Env):
         self.DISPLAYSURF.fill(self.BLACK)
         # initialize score
         self.SCORE = 0
+        self.reward = 0
         # stores the requests available to the user in a list
         self.activeRequests = []
         # automatically selects the first request in the list when game starts
         self.user.selectRequest(self.requestList[0])
         # setting value to end episode
         self.done = False
+
+        # creating observation space for gym
+        self.observation_space = spaces.Box(
+            low= np.zeros((self.WINDOWWIDTH, self.WINDOWHEIGHT, 3)),
+            high = np.ones((self.WINDOWWIDTH, self.WINDOWHEIGHT, 3)),
+            dtype=np.float16
+            )
+
+
 
 
 
@@ -110,27 +124,32 @@ class game_gym(gym.Env):
         Resets the game to start state
         '''
         self.initialise_values()
+        obs = np.array(pygame.surfarray.array3d(self.DISPLAYSURF), dtype=np.float16) / 255
+        print(obs.shape)
+        return obs
 
 
     def step(self, action):
-        
-
-
+        # timer2 decreases per frame to allow smooth decrease of timer bar width
+        self.timer2 -= 1/self.FPS
+        for event in pygame.event.get():
+            # Updates requests and reduces timer every second
+            if event.type == self.timer_event:
+                self.requestUpdate()
 
         if self.requestMode == True:
             self.request_logic(action)
-            
         elif self.topologyMode == True:
             self.topology_logic(action)
         elif self.spectrumMode == True:
             self.spectrum_logic(action)
         
-        obs = pygame.surfarray.array3d(self.DISPLAYSURF)
+        obs = np.array(pygame.surfarray.array3d(self.DISPLAYSURF), dtype=np.float16) / 255
 
         if (self.timer < self.requestList[-1].getTimeStart() and self.activeRequests == []) or self.timer == 0:
             self.done = True
 
-        return obs, self.SCORE, self.done, []
+        return obs, self.reward, self.done, {}
     
     def get_action(self):
         
@@ -163,8 +182,6 @@ class game_gym(gym.Env):
         '''
         Renders the game display screen and updates it per FPS value set. Includes drawing topolgy, requests, spectrum, score and timer.
         '''
-        # timer2 decreases per frame to allow smooth decrease of timer bar width
-        self.timer2 -= 1/self.FPS
         for event in pygame.event.get():
             # If game screen is closed, Pygame is stopped
             if event.type == pygame.QUIT:
@@ -359,6 +376,7 @@ class game_gym(gym.Env):
             if self.timer == request.timeStart - request.timeLimit + 1:
                 request.setBlock(True)
                 self.SCORE -= 1
+                self.reward -= 100
                 try:
                     self.activeRequests.remove(request)
                 except:
@@ -424,6 +442,7 @@ class game_gym(gym.Env):
                 # deselects the old request and selects the new one
                 self.user.deselectRequest()
                 self.user.selectRequest(self.activeRequests[requestIndex])
+                self.reward -= 1
 
             # IF UP arrow key is pressed
             # THEN the request above the current one is selected
@@ -437,6 +456,8 @@ class game_gym(gym.Env):
                 # deselects the old request and selects the new one
                 self.user.deselectRequest()
                 self.user.selectRequest(self.activeRequests[requestIndex])
+
+                self.reward -= 1
             
             # IF ENTER key is pressed
             # THEN the user moves to the topology space to service the request selected
@@ -453,6 +474,12 @@ class game_gym(gym.Env):
                 # defines index for use in topology space
                 self.index = 0
 
+                self.reward += 1
+
+            elif action == 2 or action == 3 or action == 5:
+                self.reward -= 5
+            
+
 
     def topology_logic(self, action):
         # IF BACKSPACE key is pressed
@@ -468,6 +495,7 @@ class game_gym(gym.Env):
                     link.setSelected(False)
                 self.requestMode = True
                 self.topologyMode = False
+                self.reward -= 1
             # IF BACKSPACE key is pressed and the user is not at the source node
             # THEN the user moves back to previous node
             else:
@@ -523,6 +551,7 @@ class game_gym(gym.Env):
             # highlights the current link
             availableLinks[self.index][0].setHighlighted(True)
             availableLinks[self.index][1].setHighlighted(True)
+            self.reward -= 1
 
         # IF DOWN arrow key is pressed
         # THEN the link below the current one is selected
@@ -539,10 +568,12 @@ class game_gym(gym.Env):
             # highlights the current link
             availableLinks[self.index][0].setHighlighted(True)
             availableLinks[self.index][1].setHighlighted(True)
+            self.reward -= 1
 
         # IF ENTER key is pressed
         # THEN the user selects the link and moves to the adjacent node
         elif action == 4:
+            self.reward += 1
             # IF ENTER key is pressed and user has not reached the destination node
             if self.user.getCurrentNode() != self.user.getCurrentRequest().getDestNode():
                 # IF the selected link does not move the user to the destination node
@@ -589,6 +620,7 @@ class game_gym(gym.Env):
                         availableLinks[self.index][0].setHighlighted(True)
                         availableLinks[self.index][1].setHighlighted(True)
                         self.DISPLAYSURF.fill(self.RED)
+                        self.reward -= 5
 
                 # ELSE IF the selected link moves the user to the destination node
                 # THEN the link and node is de-highlighted and set to selected,
@@ -612,6 +644,9 @@ class game_gym(gym.Env):
                     for link in linksSelected:
                         link.setSpectrumHighlighted(highlightedSpectrum)
                     self.spectrumIndex = 0
+        
+        elif action == 2 or action == 3:
+            self.reward -= 5
 
 
     def spectrum_logic(self, action):
@@ -637,6 +672,7 @@ class game_gym(gym.Env):
             availableLinks[self.index][0].setHighlighted(True)
             availableLinks[self.index][1].setHighlighted(True)
             self.user.getLinksSelected().remove(links_selected[-1])
+            self.reward -= 1
             
 
         # if left is pressed then the selected should be shifted to the left by 1 unless at the most left where it will jump to right
@@ -652,6 +688,7 @@ class game_gym(gym.Env):
                 highlightedSpectrum[i + self.spectrumIndex] = 1
             for link in linksSelected:
                 link.setSpectrumHighlighted(highlightedSpectrum)
+            self.reward -= 1
 
 
         # if right is pressed then the selected should be shifted to the right by 1 unless at the most right where it will jump to left
@@ -667,6 +704,7 @@ class game_gym(gym.Env):
                 highlightedSpectrum[i + self.spectrumIndex] = 1
             for link in linksSelected:
                 link.setSpectrumHighlighted(highlightedSpectrum)
+            self.reward -= 1
 
         # if return is pressed, selected links should be checked for if they are valid and if they are they should be selected and links
         # should be updated
@@ -684,6 +722,7 @@ class game_gym(gym.Env):
                             pygame.display.update()
                             print("error")
                             possible = False
+                            self.reward -= 5
             if possible == True:
                 self.completions.append((self.user.getCurrentRequest(), self.user.getLinksSelected().copy(), link.getSpectrumHighlighted().copy()))
                 for link in linksSelected:
@@ -697,8 +736,10 @@ class game_gym(gym.Env):
                 self.activeRequests.remove(self.user.getCurrentRequest())
                 self.user.getCurrentRequest().setTimeAllocated(self.timer)
                 availableLinks = self.clearAll()
+            self.reward += 100
 
-
+        elif action == 0 or action == 1:
+            self.reward -= 5
 
     def checkAvailable(self):
         '''
@@ -784,15 +825,23 @@ def main():
 
     nodeList, linkList = createTestTopology()
     requestList = generateRequests(nodeList, 5)
+
     user = User()
     eveon = game_gym(nodeList, linkList, requestList, user)
+
     # check_env(eveon, warn=True)
-    eveon.render()
+    model = DQN(MlpPolicy, eveon, verbose=1)
+    model.learn(total_timesteps=1000)
+
+    obs = eveon.reset()
     while True:
-        action = eveon.get_action()
-        observation, reward, done, info = eveon.step(action)
-        if done == True:
+        # action = eveon.get_action()
+        action2 = model.predict(obs)
+        obs, rewards, dones, info = eveon.step(action2[0])
+        print(action2[0])
+        if dones == True:
             eveon.endGame()
         eveon.render()
+
 if __name__ == '__main__':
     main()
