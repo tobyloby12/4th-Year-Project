@@ -6,11 +6,12 @@ import gym
 import pygame, sys
 from pygame.locals import *
 from gym import spaces
-from stable_baselines.common.env_checker import check_env
+from stable_baselines3.common.env_checker import check_env
 import numpy as np
-from stable_baselines.common.vec_env import DummyVecEnv
-from stable_baselines.deepq.policies import MlpPolicy
-from stable_baselines import DQN
+# from stable_baselines.common.vec_env import DummyVecEnv
+# from stable_baselines.deepq.policies import MlpPolicy
+from stable_baselines3 import DQN
+import json
 
 class game_gym(gym.Env):
     '''
@@ -63,7 +64,7 @@ class game_gym(gym.Env):
         self.requestList = requestList
         self.user = user
 
-        self.action_space = spaces.Discrete(6)
+        self.action_space = spaces.Discrete(7)
         
         self.initialise_values()
         
@@ -104,18 +105,34 @@ class game_gym(gym.Env):
         # stores the requests available to the user in a list
         self.activeRequests = []
         # automatically selects the first request in the list when game starts
-        self.user.selectRequest(self.requestList[0])
+        # self.user.selectRequest(self.requestList[0])
         # setting value to end episode
         self.done = False
 
         # creating observation space for gym
         self.observation_space = spaces.Box(
-            low= np.zeros((self.WINDOWWIDTH, self.WINDOWHEIGHT, 3)),
-            high = np.ones((self.WINDOWWIDTH, self.WINDOWHEIGHT, 3)),
-            dtype=np.float16
+            low= 0,
+            high = 255,
+            shape= (self.WINDOWWIDTH, self.WINDOWHEIGHT, 3),
+            dtype=np.uint8
             )
 
+        self.info = {}
 
+        if self.user.getCurrentRequest() != None:
+            self.user.deselectRequest()
+
+        highlighted = [0]*self.NUMBEROFSLOTS
+        for node in self.nodeList:
+            node.setHighlighted(False)
+            node.setSelected(False)
+        for link in self.linkList:
+            link.setHighlighted(False)
+            link.setSelected(False)
+            link.setSpectrumHighlighted(highlighted)
+            link.setSpectrum(highlighted)
+        
+        self.completions = []
 
 
 
@@ -124,36 +141,15 @@ class game_gym(gym.Env):
         Resets the game to start state
         '''
         self.initialise_values()
-        obs = np.array(pygame.surfarray.array3d(self.DISPLAYSURF), dtype=np.float16) / 255
+        obs = np.array(pygame.surfarray.array3d(self.DISPLAYSURF), dtype=np.uint8)
         print(obs.shape)
         return obs
 
 
     def step(self, action):
-        # timer2 decreases per frame to allow smooth decrease of timer bar width
-        self.timer2 -= 1/self.FPS
+        print(action)
+        
         for event in pygame.event.get():
-            # Updates requests and reduces timer every second
-            if event.type == self.timer_event:
-                self.requestUpdate()
-
-        if self.requestMode == True:
-            self.request_logic(action)
-        elif self.topologyMode == True:
-            self.topology_logic(action)
-        elif self.spectrumMode == True:
-            self.spectrum_logic(action)
-        
-        obs = np.array(pygame.surfarray.array3d(self.DISPLAYSURF), dtype=np.float16) / 255
-
-        if (self.timer < self.requestList[-1].getTimeStart() and self.activeRequests == []) or self.timer == 0:
-            self.done = True
-
-        return obs, self.reward, self.done, {}
-    
-    def get_action(self):
-        
-         for event in pygame.event.get():
             # If game screen is closed, Pygame is stopped
             if event.type == pygame.QUIT:
                 self.endGame()
@@ -163,29 +159,74 @@ class game_gym(gym.Env):
 
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_UP:
-                    return 0
+                    action =  0
                 elif event.key == pygame.K_DOWN:
-                    return 1
+                    action = 1
                 elif event.key == pygame.K_LEFT:
-                    return 2
+                    action = 2
                 elif event.key == pygame.K_RIGHT:
-                    return 3
+                    action = 3
                 elif event.key == pygame.K_RETURN:
-                    return 4
+                    action = 4
                 elif event.key == pygame.K_BACKSPACE:
-                    return 5
-                else:
-                    return 0
+                    action = 5
+        if action != 6:
+            if self.requestMode == True:
+                self.request_logic(action)
+            elif self.topologyMode == True:
+                self.topology_logic(action)
+            elif self.spectrumMode == True:
+                self.spectrum_logic(action)
+        
+        obs = np.array(pygame.surfarray.array3d(self.DISPLAYSURF), dtype=np.uint8)
+
+        # if (self.timer < self.requestList[-1].getTimeStart() and self.activeRequests == []) or self.timer == 0:
+        if self.timer == 0:
+            self.done = True
+            print(self.reward)
+
+        self.info[self.timer2] = {
+            'display': obs,
+            'user': self.user
+            }
+
+        return obs, self.reward, self.done, self.info
+    
+    # def get_action(self):
+        
+        #  for event in pygame.event.get():
+        #     # If game screen is closed, Pygame is stopped
+        #     if event.type == pygame.QUIT:
+        #         self.endGame()
+        # # Updates requests and reduces timer every second
+        #     elif event.type == self.timer_event:
+        #         self.requestUpdate()
+
+        #     elif event.type == pygame.KEYDOWN:
+        #         if event.key == pygame.K_UP:
+        #             return 0
+        #         elif event.key == pygame.K_DOWN:
+        #             return 1
+        #         elif event.key == pygame.K_LEFT:
+        #             return 2
+        #         elif event.key == pygame.K_RIGHT:
+        #             return 3
+        #         elif event.key == pygame.K_RETURN:
+        #             return 4
+        #         elif event.key == pygame.K_BACKSPACE:
+        #             return 5
+        #         else:
+        #             return 6
 
 
     def render(self):
         '''
         Renders the game display screen and updates it per FPS value set. Includes drawing topolgy, requests, spectrum, score and timer.
         '''
-        for event in pygame.event.get():
-            # If game screen is closed, Pygame is stopped
-            if event.type == pygame.QUIT:
-                self.endGame()
+        # for event in pygame.event.get():
+        #     # If game screen is closed, Pygame is stopped
+        #     if event.type == pygame.QUIT:
+        #         self.endGame()
             
             
         # creating game screen
@@ -205,6 +246,10 @@ class game_gym(gym.Env):
 
         # Update portions of the screen for software displays (in this case the entire screen is updated)      
         pygame.display.update()
+
+        # timer2 decreases per frame to allow smooth decrease of timer bar width
+        self.timer2 -= 1/self.FPS
+        
         # updates the clock once per frame
         self.FPSCLOCK.tick(self.FPS)
 
@@ -407,15 +452,18 @@ class game_gym(gym.Env):
                 self.user.deselectRequest()
         # decrease timer by 1
         self.timer -= 1
-
+        self.timer2 = self.timer
+        if self.user.getCurrentRequest() == None:
+            if self.activeRequests != []:
+                self.user.selectRequest(self.activeRequests[0])
+            
 
     def request_logic(self, action):
         # IF there are no selected requests and there are active requests
         # THEN the first indexed request in the list of active requests is selected
         # IN THE EVENT THAT selected request expires
-        if self.user.getCurrentRequest() == None and self.activeRequests != []:
-            self.user.selectRequest(self.activeRequests[0])
-            currentRequest = self.user.getCurrentRequest()
+        # if self.user.getCurrentRequest() == None and self.activeRequests != []:
+        #     self.user.selectRequest(self.activeRequests[0])
             
         # IF there are not active requests
         # THEN do nothing
@@ -474,7 +522,7 @@ class game_gym(gym.Env):
                 # defines index for use in topology space
                 self.index = 0
 
-                self.reward += 1
+                self.reward += 0
 
             elif action == 2 or action == 3 or action == 5:
                 self.reward -= 5
@@ -533,7 +581,8 @@ class game_gym(gym.Env):
                 availableLinks[self.index][0].setHighlighted(True)
                 availableLinks[self.index][1].setHighlighted(True)
             else:
-                self.DISPLAYSURF.fill(self.RED)
+                # self.DISPLAYSURF.fill(self.RED)
+                pass
                 
 
         # IF UP arrow key is pressed
@@ -718,9 +767,9 @@ class game_gym(gym.Env):
                     if link.getSpectrumHighlighted()[i] == 1:
                         if link.getSpectrum()[i] == 1:
                             # create error screen
-                            self.DISPLAYSURF.fill(self.RED)
-                            pygame.display.update()
-                            print("error")
+                            # self.DISPLAYSURF.fill(self.RED)
+                            # pygame.display.update()
+                            # print("error")
                             possible = False
                             self.reward -= 5
             if possible == True:
@@ -736,7 +785,7 @@ class game_gym(gym.Env):
                 self.activeRequests.remove(self.user.getCurrentRequest())
                 self.user.getCurrentRequest().setTimeAllocated(self.timer)
                 availableLinks = self.clearAll()
-            self.reward += 100
+                self.reward += 100
 
         elif action == 0 or action == 1:
             self.reward -= 5
@@ -769,14 +818,13 @@ class game_gym(gym.Env):
         # the request is deselcted automatically since it has expired
         self.user.deselectRequest()
         # nodes and links that user has selected or is selecting will be removed
-        highlighted = [0]*NUMBEROFSLOTS
+        highlighted = [0]*self.NUMBEROFSLOTS
         for node in self.nodeList:
             node.setHighlighted(False)
             node.setSelected(False)
         for link in self.linkList:
             link.setHighlighted(False)
             link.setSelected(False)
-
             link.setSpectrumHighlighted(highlighted)
         # user is returned to request mode
         self.requestMode = True
@@ -824,24 +872,51 @@ def createTestTopology():
 def main():
 
     nodeList, linkList = createTestTopology()
-    requestList = generateRequests(nodeList, 5)
+    requestList = generateRequests(nodeList, 6)
 
     user = User()
     eveon = game_gym(nodeList, linkList, requestList, user)
 
-    # check_env(eveon, warn=True)
-    model = DQN(MlpPolicy, eveon, verbose=1)
-    model.learn(total_timesteps=1000)
+    check_env(eveon, warn=True)
+    model = DQN('MlpPolicy', eveon, verbose=1, buffer_size=100, device='cuda')
+    model.learn(total_timesteps=25000)
+    model.save("DQNEveon")
 
     obs = eveon.reset()
-    while True:
-        # action = eveon.get_action()
-        action2 = model.predict(obs)
-        obs, rewards, dones, info = eveon.step(action2[0])
-        print(action2[0])
+    while True :
+        action, states_ = model.predict(obs, deterministic=True)
+        # action = 6
+        obs, rewards, dones, info = eveon.step(action)
+        print(action)
         if dones == True:
-            eveon.endGame()
+            print(eveon.reward)
+            # with open('info.json', 'w') as outfile:
+            #     json.dump(info, outfile)
+
+            eveon.reset()
+
         eveon.render()
+
+# def main():
+#     nodeList, linkList = createTestTopology()
+#     requestList = generateRequests(nodeList, 5)
+
+#     user = User()
+#     eveon = game_gym(nodeList, linkList, requestList, user)
+
+#     # check_env(eveon, warn=True)
+#     # model = DQN(MlpPolicy, eveon, verbose=1)
+#     # model.learn(total_timesteps=1000)
+
+#     obs = eveon.reset()
+#     while True:
+#         action = eveon.get_action()
+#         # action2 = model.predict(obs)
+#         obs, rewards, dones, info = eveon.step(action)
+#         if dones == True:
+#             print(eveon.reward)
+#             eveon.endGame()
+#         eveon.render()
 
 if __name__ == '__main__':
     main()
