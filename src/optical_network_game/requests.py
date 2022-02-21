@@ -82,7 +82,7 @@ def generateRequests(listOfNodes, numberOfRequests):
         # randomising time start
         #timeStart = 50 - i*5
         #setting time start to be at 59 seconds
-        timeStart = 59
+        timeStart = 60
 
         # creating 
         request = Request(i, source, destination, bandwidth, timeStart)
