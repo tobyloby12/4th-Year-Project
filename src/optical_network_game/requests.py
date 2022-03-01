@@ -58,7 +58,7 @@ class Request:
 
     def setTimeAllocated(self, value):
         self.timeAllocated = value
-        self.timeDeallocated = value - 5
+        self.timeDeallocated = value - 10
 
     def getTimeDeallocated(self):
         return self.timeDeallocated
@@ -80,7 +80,7 @@ def generateRequests(listOfNodes, numberOfRequests):
         # randomising bandwidth
         bandwidth = random.randint(1, 5)
         # randomising time start
-        timeStart = 50 - i*5
+        timeStart = 60 - i*1
         # creating 
         request = Request(i, source, destination, bandwidth, timeStart)
         requestsList.append(request)

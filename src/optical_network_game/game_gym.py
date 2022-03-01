@@ -12,6 +12,7 @@ import numpy as np
 # from stable_baselines.deepq.policies import MlpPolicy
 from stable_baselines3 import DQN
 import json
+import cv2
 
 class game_gym(gym.Env):
     '''
@@ -64,7 +65,7 @@ class game_gym(gym.Env):
         self.requestList = requestList
         self.user = user
 
-        self.action_space = spaces.Discrete(7)
+        self.action_space = spaces.Discrete(4)
         
         self.initialise_values()
         
@@ -102,6 +103,7 @@ class game_gym(gym.Env):
         # initialize score
         self.SCORE = 0
         self.reward = 0
+        self.cum_reward = 0
         # stores the requests available to the user in a list
         self.activeRequests = []
         # automatically selects the first request in the list when game starts
@@ -113,9 +115,17 @@ class game_gym(gym.Env):
         self.observation_space = spaces.Box(
             low= 0,
             high = 255,
-            shape= (self.WINDOWWIDTH, self.WINDOWHEIGHT, 3),
+            shape= (256, 256, 3),
             dtype=np.uint8
             )
+
+        # self.observation_space = spaces.Dict({
+        #     'gamescreen': self.screenshot,
+        #     'source': self.user.getCurrentRequest().getSourceNode().getID(), 
+        #     'destination': self.user.getCurrentRequest().getDestNode().getID(), 
+        #     'bandwidth': self.user.getCurrentRequest().getBandwidth(), 
+        #     'timeLimit': self.user.getCurrentRequest().timeLimit - (self.user.getCurrentRequest().timeStart - self.timer2)
+        #     })
 
         self.info = {}
 
@@ -141,14 +151,15 @@ class game_gym(gym.Env):
         Resets the game to start state
         '''
         self.initialise_values()
-        obs = np.array(pygame.surfarray.array3d(self.DISPLAYSURF), dtype=np.uint8)
+        obs = np.array(pygame.surfarray.array3d(self.DISPLAYSURF.subsurface((210, 0, 560, 600))), dtype=np.uint8)
+        obs = cv2.resize(obs, dsize=(256, 256))
         print(obs.shape)
         return obs
 
 
     def step(self, action):
-        print(action)
-        
+        # print(action)
+        # self.reward = 0
         for event in pygame.event.get():
             # If game screen is closed, Pygame is stopped
             if event.type == pygame.QUIT:
@@ -162,15 +173,12 @@ class game_gym(gym.Env):
                     action =  0
                 elif event.key == pygame.K_DOWN:
                     action = 1
-                elif event.key == pygame.K_LEFT:
-                    action = 2
-                elif event.key == pygame.K_RIGHT:
-                    action = 3
                 elif event.key == pygame.K_RETURN:
-                    action = 4
+                    action = 2
                 elif event.key == pygame.K_BACKSPACE:
-                    action = 5
-        if action != 6:
+                    action = 3
+        if action != 4:
+            self.reward -= 1
             if self.requestMode == True:
                 self.request_logic(action)
             elif self.topologyMode == True:
@@ -178,12 +186,13 @@ class game_gym(gym.Env):
             elif self.spectrumMode == True:
                 self.spectrum_logic(action)
         
-        obs = np.array(pygame.surfarray.array3d(self.DISPLAYSURF), dtype=np.uint8)
+        obs = np.array(pygame.surfarray.array3d(self.DISPLAYSURF.subsurface((210, 0, 560, 600))), dtype=np.uint8)
+        obs = cv2.resize(obs, dsize=(256, 256))
 
-        # if (self.timer < self.requestList[-1].getTimeStart() and self.activeRequests == []) or self.timer == 0:
-        if self.timer == 0:
+        if (self.timer < self.requestList[-1].getTimeStart() and self.activeRequests == []) or self.timer == 0:
+        # if self.timer == 0:
             self.done = True
-            print(self.reward)
+            print(f'Total reward for this episode is {self.cum_reward}')
 
         self.info[self.timer2] = {
             'display': obs,
@@ -421,7 +430,9 @@ class game_gym(gym.Env):
             if self.timer == request.timeStart - request.timeLimit + 1:
                 request.setBlock(True)
                 self.SCORE -= 1
-                self.reward -= 100
+                self.reward -=200
+                # self.reward = -200
+                # self.cum_reward += self.reward
                 try:
                     self.activeRequests.remove(request)
                 except:
@@ -490,7 +501,9 @@ class game_gym(gym.Env):
                 # deselects the old request and selects the new one
                 self.user.deselectRequest()
                 self.user.selectRequest(self.activeRequests[requestIndex])
-                self.reward -= 1
+
+                # self.reward = -1
+                # self.cum_reward += self.reward
 
             # IF UP arrow key is pressed
             # THEN the request above the current one is selected
@@ -505,11 +518,12 @@ class game_gym(gym.Env):
                 self.user.deselectRequest()
                 self.user.selectRequest(self.activeRequests[requestIndex])
 
-                self.reward -= 1
+                # self.reward = -1
+                # self.cum_reward += self.reward
             
             # IF ENTER key is pressed
             # THEN the user moves to the topology space to service the request selected
-            elif action == 4:
+            elif action == 2:
                 self.requestMode = False
                 self.topologyMode = True
                 # user automatically starts at the source node of the request
@@ -522,16 +536,18 @@ class game_gym(gym.Env):
                 # defines index for use in topology space
                 self.index = 0
 
-                self.reward += 0
+                # self.reward = -1
+                # self.cum_reward += self.reward
 
-            elif action == 2 or action == 3 or action == 5:
-                self.reward -= 5
+            # elif action == 2 or action == 3 or action == 5:
+                # self.reward -= 5
             
 
 
     def topology_logic(self, action):
         # IF BACKSPACE key is pressed
-        if action == 5:
+        if action == 3:
+            
             # IF BACKSPACE key is pressed and the user is at the source node
             # THEN the user moves back to selecting a request, highlights will be reset
             if self.user.getCurrentNode() == self.user.getCurrentRequest().getSourceNode():
@@ -543,10 +559,25 @@ class game_gym(gym.Env):
                     link.setSelected(False)
                 self.requestMode = True
                 self.topologyMode = False
-                self.reward -= 1
+
+                # self.reward = -1
+                # self.cum_reward += self.reward
             # IF BACKSPACE key is pressed and the user is not at the source node
             # THEN the user moves back to previous node
             else:
+
+                links_selected = self.user.getLinksSelected()
+                highlightedSpectrum = [0]*NUMBEROFSLOTS
+                links_selected[-1][1].setSpectrumHighlighted(highlightedSpectrum)
+
+                
+                # self.user.setCurrentNode(links_selected[-1][0])
+                # links_selected[-1][1].setSelected(False)
+                # self.user.getCurrentRequest().getDestNode().setSelected(False)
+                # availableLinks = self.checkAvailable()
+                # availableLinks[self.index][0].setHighlighted(True)
+                # availableLinks[self.index][1].setHighlighted(True)
+
                 # define previous node and link pair from selected links list
                 previous = self.user.getLinksSelected()[-1]
                 # deselects the current node user is at
@@ -570,6 +601,9 @@ class game_gym(gym.Env):
                 if availableLinks != []:
                     availableLinks[self.index][0].setHighlighted(True)
                     availableLinks[self.index][1].setHighlighted(True)
+
+                
+            
         
         # ELSE IF any button except BACKSPACE is pressed
         else:
@@ -600,8 +634,9 @@ class game_gym(gym.Env):
             # highlights the current link
             availableLinks[self.index][0].setHighlighted(True)
             availableLinks[self.index][1].setHighlighted(True)
-            self.reward -= 1
 
+            # self.reward = -1
+            # self.cum_reward += self.reward
         # IF DOWN arrow key is pressed
         # THEN the link below the current one is selected
         elif action == 1:
@@ -617,12 +652,15 @@ class game_gym(gym.Env):
             # highlights the current link
             availableLinks[self.index][0].setHighlighted(True)
             availableLinks[self.index][1].setHighlighted(True)
-            self.reward -= 1
+
+            # self.reward = -1
+            # self.cum_reward += self.reward
 
         # IF ENTER key is pressed
         # THEN the user selects the link and moves to the adjacent node
-        elif action == 4:
-            self.reward += 1
+        elif action == 2:
+            # self.reward = -1
+            # self.cum_reward += self.reward
             # IF ENTER key is pressed and user has not reached the destination node
             if self.user.getCurrentNode() != self.user.getCurrentRequest().getDestNode():
                 # IF the selected link does not move the user to the destination node
@@ -645,6 +683,17 @@ class game_gym(gym.Env):
                     if availableLinks != []:
                         availableLinks[self.index][0].setHighlighted(True)
                         availableLinks[self.index][1].setHighlighted(True)
+
+                        # need to include selecting first few slots automatically
+                        bandwidth = self.user.getCurrentRequest().getBandwidth()
+                        linksSelected = [link[1] for link in self.user.getLinksSelected()]
+                        highlightedSpectrum = [0]*self.NUMBEROFSLOTS
+                        for i in range(bandwidth):
+                            highlightedSpectrum[i] = 1
+                        for link in linksSelected:
+                            link.setSpectrumHighlighted(highlightedSpectrum)
+                        self.spectrumIndex = 0
+
                     else:
                         # undo selection
                         # define previous node and link pair from selected links list
@@ -668,8 +717,8 @@ class game_gym(gym.Env):
                         availableLinks = self.checkAvailable()
                         availableLinks[self.index][0].setHighlighted(True)
                         availableLinks[self.index][1].setHighlighted(True)
-                        self.DISPLAYSURF.fill(self.RED)
-                        self.reward -= 5
+                        # self.DISPLAYSURF.fill(self.RED)
+                        # self.reward -= 5
 
                 # ELSE IF the selected link moves the user to the destination node
                 # THEN the link and node is de-highlighted and set to selected,
@@ -694,8 +743,8 @@ class game_gym(gym.Env):
                         link.setSpectrumHighlighted(highlightedSpectrum)
                     self.spectrumIndex = 0
         
-        elif action == 2 or action == 3:
-            self.reward -= 5
+        # elif action == 2 or action == 3:
+            # self.reward -= 5
 
 
     def spectrum_logic(self, action):
@@ -704,16 +753,15 @@ class game_gym(gym.Env):
         # selected links should be deselected
         # automatically highlight links
         # removes the links from user selected links
-        if action == 5:
+        if action == 3:
             self.topologyMode = True
             self.spectrumMode = False
 
-            linksSelected = [link[1] for link in self.user.getLinksSelected()]
-            highlightedSpectrum = [0]*NUMBEROFSLOTS
-            for link in linksSelected:
-                link.setSpectrumHighlighted(highlightedSpectrum)
-
             links_selected = self.user.getLinksSelected()
+            highlightedSpectrum = [0]*NUMBEROFSLOTS
+            links_selected[-1][1].setSpectrumHighlighted(highlightedSpectrum)
+
+            
             self.user.setCurrentNode(links_selected[-1][0])
             links_selected[-1][1].setSelected(False)
             self.user.getCurrentRequest().getDestNode().setSelected(False)
@@ -721,11 +769,13 @@ class game_gym(gym.Env):
             availableLinks[self.index][0].setHighlighted(True)
             availableLinks[self.index][1].setHighlighted(True)
             self.user.getLinksSelected().remove(links_selected[-1])
-            self.reward -= 1
+
+            # self.reward = -1
+            # self.cum_reward += self.reward
             
 
         # if left is pressed then the selected should be shifted to the left by 1 unless at the most left where it will jump to right
-        elif action == 2:
+        elif action == 0:
             bandwidth = self.user.getCurrentRequest().getBandwidth()
             if self.spectrumIndex == 0:
                 self.spectrumIndex = self.NUMBEROFSLOTS - bandwidth
@@ -737,11 +787,13 @@ class game_gym(gym.Env):
                 highlightedSpectrum[i + self.spectrumIndex] = 1
             for link in linksSelected:
                 link.setSpectrumHighlighted(highlightedSpectrum)
-            self.reward -= 1
+
+            # self.reward = -1
+            # self.cum_reward += self.reward
 
 
         # if right is pressed then the selected should be shifted to the right by 1 unless at the most right where it will jump to left
-        elif action == 3:
+        elif action == 1:
             bandwidth = self.user.getCurrentRequest().getBandwidth()
             if self.spectrumIndex == self.NUMBEROFSLOTS - bandwidth:
                 self.spectrumIndex = 0
@@ -753,12 +805,14 @@ class game_gym(gym.Env):
                 highlightedSpectrum[i + self.spectrumIndex] = 1
             for link in linksSelected:
                 link.setSpectrumHighlighted(highlightedSpectrum)
-            self.reward -= 1
+
+            # self.reward = -1
+            # self.cum_reward += self.reward
 
         # if return is pressed, selected links should be checked for if they are valid and if they are they should be selected and links
         # should be updated
         # otherwise an error message should pop up
-        elif action == 4:
+        elif action == 2:
             # check that there are no conflicts
             linksSelected = [link[1] for link in self.user.getLinksSelected()]
             possible = True
@@ -771,7 +825,9 @@ class game_gym(gym.Env):
                             # pygame.display.update()
                             # print("error")
                             possible = False
-                            self.reward -= 5
+                            self.reward -= 2
+                            # self.reward = -2
+                            # self.cum_reward += self.reward
             if possible == True:
                 self.completions.append((self.user.getCurrentRequest(), self.user.getLinksSelected().copy(), link.getSpectrumHighlighted().copy()))
                 for link in linksSelected:
@@ -785,10 +841,13 @@ class game_gym(gym.Env):
                 self.activeRequests.remove(self.user.getCurrentRequest())
                 self.user.getCurrentRequest().setTimeAllocated(self.timer)
                 availableLinks = self.clearAll()
-                self.reward += 100
 
-        elif action == 0 or action == 1:
-            self.reward -= 5
+                self.reward += 100
+                # self.reward = 100
+                # self.cum_reward += self.reward
+
+        # elif action == 0 or action == 1:
+        #     self.reward -= 5
 
     def checkAvailable(self):
         '''
@@ -872,20 +931,21 @@ def createTestTopology():
 def main():
 
     nodeList, linkList = createTestTopology()
-    requestList = generateRequests(nodeList, 6)
+    requestList = generateRequests(nodeList, 30)
 
     user = User()
     eveon = game_gym(nodeList, linkList, requestList, user)
 
     check_env(eveon, warn=True)
-    model = DQN('MlpPolicy', eveon, verbose=1, buffer_size=100, device='cuda')
-    model.learn(total_timesteps=25000)
-    model.save("DQNEveon")
+    # model = DQN('MlpPolicy', eveon, verbose=1, buffer_size=100, device='cuda')
+    # model.learn(total_timesteps=10000)
+    # model.save("DQNEveon")
 
     obs = eveon.reset()
     while True :
-        action, states_ = model.predict(obs, deterministic=True)
+        # action, states_ = model.predict(obs, deterministic=True)
         # action = 6
+        action = 6
         obs, rewards, dones, info = eveon.step(action)
         print(action)
         if dones == True:
