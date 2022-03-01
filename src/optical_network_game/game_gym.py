@@ -164,6 +164,7 @@ class game_gym(gym.Env):
             # If game screen is closed, Pygame is stopped
             if event.type == pygame.QUIT:
                 self.endGame()
+                # comment
         # Updates requests and reduces timer every second
             elif event.type == self.timer_event:
                 self.requestUpdate()
