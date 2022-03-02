@@ -712,8 +712,8 @@ class game_gym(gym.Env):
                 link.setSpectrumHighlighted(highlightedSpectrum)
             self.spectrumIndex = 0
             
-            self.reward -= len(self.available_paths[self.index])
-            self.reward += self.user.getCurrentRequest().timeLimit - (self.user.getCurrentRequest().timeStart - self.timer2)
+            self.reward -= len(self.available_paths[self.index])*5
+            self.reward += (self.user.getCurrentRequest().timeLimit - (self.user.getCurrentRequest().timeStart - self.timer2))*2
 
             # # self.reward = -1
             # # self.cum_reward += self.reward
