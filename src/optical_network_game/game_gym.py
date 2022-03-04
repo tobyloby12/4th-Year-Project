@@ -67,7 +67,7 @@ class game_gym(gym.Env):
         self.requestList = requestList
         self.user = user
 
-        self.action_space = spaces.Discrete(4)
+        self.action_space = spaces.Discrete(3)
         
         self.initialise_values()
         
@@ -163,12 +163,11 @@ class game_gym(gym.Env):
 
     def step(self, action):
         # print(action)
-        # self.reward = 0
+        self.reward = 0
         for event in pygame.event.get():
             # If game screen is closed, Pygame is stopped
             if event.type == pygame.QUIT:
                 self.endGame()
-                # comment
         # Updates requests and reduces timer every second
             elif event.type == self.timer_event:
                 self.requestUpdate()
@@ -180,10 +179,10 @@ class game_gym(gym.Env):
                     action = 1
                 elif event.key == pygame.K_RETURN:
                     action = 2
-                elif event.key == pygame.K_BACKSPACE:
-                    action = 3
+                # elif event.key == pygame.K_BACKSPACE:
+                #     action = 3
         if action != 4:
-            self.reward -= 1
+            # self.reward -= 1
             if self.requestMode == True:
                 self.request_logic(action)
             elif self.topologyMode == True:
@@ -193,11 +192,11 @@ class game_gym(gym.Env):
         
         obs = np.array(pygame.surfarray.array3d(self.DISPLAYSURF.subsurface((210, 0, 560, 600))), dtype=np.uint8)
         obs = cv2.resize(obs, dsize=(256, 256))
-
+        self.cum_reward += self.reward
         if (self.timer < self.requestList[-1].getTimeStart() and self.activeRequests == []) or self.timer == 0:
         # if self.timer == 0:
             self.done = True
-            print(f'Total reward for this episode is {self.reward}')
+            print(f'Total reward for this episode is {self.cum_reward}')
 
         self.info[self.timer2] = {
             'display': obs,
@@ -276,7 +275,7 @@ class game_gym(gym.Env):
         '''
         pygame.font.init()
         myfont = pygame.font.SysFont('Calibri', 30)
-        textsurface = myfont.render(f'SCORE: {str(self.reward)}', False, WHITE)
+        textsurface = myfont.render(f'SCORE: {str(self.cum_reward)}', False, WHITE)
         self.DISPLAYSURF.blit(textsurface, (self.WINDOWWIDTH/2-70, 15))
 
 
@@ -435,9 +434,8 @@ class game_gym(gym.Env):
             if self.timer == request.timeStart - request.timeLimit + 1:
                 request.setBlock(True)
                 self.SCORE -= 1
-                self.reward -=200
-                # self.reward = -200
-                # self.cum_reward += self.reward
+                # self.reward -=200
+                self.reward = -1
                 try:
                     self.activeRequests.remove(request)
                 except:
@@ -510,91 +508,9 @@ class game_gym(gym.Env):
             for link in linksSelected:
                 link.setSpectrumHighlighted(highlightedSpectrum)
             self.spectrumIndex = 0
-            
-            # self.user.setCurrentNode(self.user.currentRequest.getSourceNode())
-            # source node is automatically set as selected
-            # self.user.getCurrentNode().setSelected(True)
-            # the first link and adjacent node connected to the source node (in the list) will be automatically highlighted
-            # self.user.getCurrentNode().getLinks()[0][0].setHighlighted(True)
-            # self.user.getCurrentNode().getLinks()[0][1].setHighlighted(True)
-            # defines index for use in topology space
-            # self.index = 0
 
 
     def topology_logic(self, action):
-        # IF BACKSPACE key is pressed
-        # if action == 3:
-            
-        #     # IF BACKSPACE key is pressed and the user is at the source node
-        #     # THEN the user moves back to selecting a request, highlights will be reset
-        #     if self.user.getCurrentNode() == self.user.getCurrentRequest().getSourceNode():
-        #         for node in self.nodeList:
-        #             node.setHighlighted(False)
-        #             node.setSelected(False)
-        #         for link in self.linkList:
-        #             link.setHighlighted(False)
-        #             link.setSelected(False)
-        #         self.requestMode = True
-        #         self.topologyMode = False
-
-        #         # self.reward = -1
-        #         # self.cum_reward += self.reward
-        #     # IF BACKSPACE key is pressed and the user is not at the source node
-        #     # THEN the user moves back to previous node
-        #     else:
-
-        #         links_selected = self.user.getLinksSelected()
-        #         highlightedSpectrum = [0]*NUMBEROFSLOTS
-        #         links_selected[-1][1].setSpectrumHighlighted(highlightedSpectrum)
-
-                
-        #         # self.user.setCurrentNode(links_selected[-1][0])
-        #         # links_selected[-1][1].setSelected(False)
-        #         # self.user.getCurrentRequest().getDestNode().setSelected(False)
-        #         # availableLinks = self.checkAvailable()
-        #         # availableLinks[self.index][0].setHighlighted(True)
-        #         # availableLinks[self.index][1].setHighlighted(True)
-
-        #         # define previous node and link pair from selected links list
-        #         previous = self.user.getLinksSelected()[-1]
-        #         # deselects the current node user is at
-        #         self.user.getCurrentNode().setSelected(False)
-        #         # selects the pervious node user was at
-        #         self.user.setCurrentNode(previous[0])
-
-        #         # deselects the link user chose to get to the current node
-        #         previous[1].setSelected(False)
-        #         # removes the node and link pair from the selected links list
-        #         self.user.getLinksSelected().remove(previous)
-                
-        #         # removing all highlights (makes it easier since only highlights will be where user is at)
-        #         for node in self.nodeList:
-        #             node.setHighlighted(False)
-        #         for link in self.linkList:
-        #             link.setHighlighted(False)
-        #         # refreshes the links user can choose
-        #         availableLinks = self.checkAvailable()
-        #         # the first link and adjacent node connected to the current node (in the list) will be automatically highlighted
-        #         if availableLinks != []:
-        #             # availableLinks[self.index][0].setHighlighted(True)
-        #             # availableLinks[self.index][1].setHighlighted(True)
-        #             pass
-                
-            
-        
-        # # ELSE IF any button except BACKSPACE is pressed
-        # else:
-        #     # refreshes the links user can choose
-        #     availableLinks = self.checkAvailable()
-            
-        #     # the first link and adjacent node connected to the current node (in the list) will be automatically highlighted
-        #     if availableLinks != []:
-        #         availableLinks[self.index][0].setHighlighted(True)
-        #         availableLinks[self.index][1].setHighlighted(True)
-        #     else:
-        #         # self.DISPLAYSURF.fill(self.RED)
-        #         pass
-                
 
         # IF UP arrow key is pressed
         # THEN the link above the current one is selected
@@ -628,23 +544,6 @@ class game_gym(gym.Env):
                 link.setSpectrumHighlighted(highlightedSpectrum)
             self.spectrumIndex = 0
 
-            # # de-highlights the current link
-            # availableLinks[self.index][0].setHighlighted(False)
-            # availableLinks[self.index][1].setHighlighted(False)
-            # # IF UP arrow key is pressed and it is already the highest link
-            # # THEN the lowest link is selected
-            # if self.index == 0:
-            #     self.index = len(availableLinks) - 1
-            # else:
-            #     self.index -= 1
-            # # highlights the current link
-            # availableLinks[self.index][0].setHighlighted(True)
-            # availableLinks[self.index][1].setHighlighted(True)
-
-            # self.reward = -1
-            # self.cum_reward += self.reward
-        # IF DOWN arrow key is pressed
-        # THEN the link below the current one is selected
         elif action == 1:
 
             linksSelected = [link for link in self.available_paths[self.index] if type(link) is Link]
@@ -673,22 +572,6 @@ class game_gym(gym.Env):
                 link.setSpectrumHighlighted(highlightedSpectrum)
             self.spectrumIndex = 0
 
-            # # de-highlights the current link
-            # availableLinks[self.index][0].setHighlighted(False)
-            # availableLinks[self.index][1].setHighlighted(False)
-            # # IF DOWN arrow key is pressed and it is already the lowest link
-            # # THEN the highest link is selected
-            # if self.index == len(availableLinks) - 1:
-            #     self.index = 0
-            # else:
-            #     self.index += 1
-            # # highlights the current link
-            # availableLinks[self.index][0].setHighlighted(True)
-            # availableLinks[self.index][1].setHighlighted(True)
-
-            # self.reward = -1
-            # self.cum_reward += self.reward
-
         # IF ENTER key is pressed
         # THEN the user selects the link and moves to the adjacent node
         elif action == 2:
@@ -712,95 +595,6 @@ class game_gym(gym.Env):
                 link.setSpectrumHighlighted(highlightedSpectrum)
             self.spectrumIndex = 0
             
-            self.reward -= len(self.available_paths[self.index])*5
-            self.reward += (self.user.getCurrentRequest().timeLimit - (self.user.getCurrentRequest().timeStart - self.timer2))*2
-
-            # # self.reward = -1
-            # # self.cum_reward += self.reward
-            # # IF ENTER key is pressed and user has not reached the destination node
-            # if self.user.getCurrentNode() != self.user.getCurrentRequest().getDestNode():
-            #     # IF the selected link does not move the user to the destination node
-            #     # THEN the link and node is de-highlighted and set to selected,
-            #     # user moves to the adjacent node connected to the selected link
-            #     if availableLinks[self.index][0] != self.user.getCurrentRequest().getDestNode():
-            #         availableLinks[self.index][0].setHighlighted(False)
-            #         availableLinks[self.index][1].setHighlighted(False)
-            #         availableLinks[self.index][0].setSelected(True)
-            #         availableLinks[self.index][1].setSelected(True)
-            #         # current node and link selected is added to the list
-            #         self.user.addLink(self.user.getCurrentNode(), availableLinks[self.index][1])
-            #         # new current node is set to adjacent node connected to the selected link
-            #         self.user.setCurrentNode(availableLinks[self.index][0])
-            #         # index is set back to default 0 (as it is a new node)
-            #         self.index = 0
-            #         # links the user can choose are refreshed
-            #         availableLinks = self.checkAvailable()
-            #         # the first link and adjacent node connected to the current node (in the list) will be automatically highlighted
-            #         if availableLinks != []:
-            #             availableLinks[self.index][0].setHighlighted(True)
-            #             availableLinks[self.index][1].setHighlighted(True)
-
-            #             # need to include selecting first few slots automatically
-            #             bandwidth = self.user.getCurrentRequest().getBandwidth()
-            #             linksSelected = [link[1] for link in self.user.getLinksSelected()]
-            #             highlightedSpectrum = [0]*self.NUMBEROFSLOTS
-            #             for i in range(bandwidth):
-            #                 highlightedSpectrum[i] = 1
-            #             for link in linksSelected:
-            #                 link.setSpectrumHighlighted(highlightedSpectrum)
-            #             self.spectrumIndex = 0
-
-            #         else:
-            #             # undo selection
-            #             # define previous node and link pair from selected links list
-            #             previous = self.user.getLinksSelected()[-1]
-            #             # deselects the current node user is at
-            #             self.user.getCurrentNode().setSelected(False)
-            #             # selects the pervious node user was at
-            #             self.user.setCurrentNode(previous[0])
-
-            #             # deselects the link user chose to get to the current node
-            #             previous[1].setSelected(False)
-            #             # removes the node and link pair from the selected links list
-            #             self.user.getLinksSelected().remove(previous)
-                        
-            #             # removing all highlights (makes it easier since only highlights will be where user is at)
-            #             for node in self.nodeList:
-            #                 node.setHighlighted(False)
-            #             for link in self.linkList:
-            #                 link.setHighlighted(False)
-            #             # refreshes the links user can choose
-            #             availableLinks = self.checkAvailable()
-            #             availableLinks[self.index][0].setHighlighted(True)
-            #             availableLinks[self.index][1].setHighlighted(True)
-            #             # self.DISPLAYSURF.fill(self.RED)
-            #             # self.reward -= 5
-
-            #     # ELSE IF the selected link moves the user to the destination node
-            #     # THEN the link and node is de-highlighted and set to selected,
-            #     # user moves to the spectrum space for spectrum allocation
-            #     else:
-            #         availableLinks[self.index][0].setHighlighted(False)
-            #         availableLinks[self.index][1].setHighlighted(False)
-            #         availableLinks[self.index][0].setSelected(True)
-            #         availableLinks[self.index][1].setSelected(True)
-            #         # current node and link selected is added to the list
-            #         self.user.addLink(self.user.getCurrentNode(), availableLinks[self.index][1])
-            #         self.topologyMode = False
-            #         self.spectrumMode = True
-
-            #         # need to include selecting first few slots automatically
-            #         bandwidth = self.user.getCurrentRequest().getBandwidth()
-            #         linksSelected = [link[1] for link in self.user.getLinksSelected()]
-            #         highlightedSpectrum = [0]*self.NUMBEROFSLOTS
-            #         for i in range(bandwidth):
-            #             highlightedSpectrum[i] = 1
-            #         for link in linksSelected:
-            #             link.setSpectrumHighlighted(highlightedSpectrum)
-            #         self.spectrumIndex = 0
-        
-        # elif action == 2 or action == 3:
-            # self.reward -= 5
 
 
     def spectrum_logic(self, action):
@@ -809,37 +603,20 @@ class game_gym(gym.Env):
         # selected links should be deselected
         # automatically highlight links
         # removes the links from user selected links
-        if action == 3:
+        # if action == 3:
 
-            for item in self.available_paths[self.index]:
-                item.setHighlighted(True)
+        #     for item in self.available_paths[self.index]:
+        #         item.setHighlighted(True)
             
-            for item in self.available_paths[self.index]:
-                item.setSelected(False)
+        #     for item in self.available_paths[self.index]:
+        #         item.setSelected(False)
 
-            self.topologyMode = True
-            self.spectrumMode = False
-
-
-            # links_selected = self.user.getLinksSelected()
-            # highlightedSpectrum = [0]*NUMBEROFSLOTS
-            # links_selected[-1][1].setSpectrumHighlighted(highlightedSpectrum)
-
-            
-            # self.user.setCurrentNode(links_selected[-1][0])
-            # links_selected[-1][1].setSelected(False)
-            # self.user.getCurrentRequest().getDestNode().setSelected(False)
-            # availableLinks = self.checkAvailable()
-            # availableLinks[self.index][0].setHighlighted(True)
-            # availableLinks[self.index][1].setHighlighted(True)
-            # self.user.getLinksSelected().remove(links_selected[-1])
-
-            # self.reward = -1
-            # self.cum_reward += self.reward
+        #     self.topologyMode = True
+        #     self.spectrumMode = False
             
 
         # if up is pressed then the selected should be shifted to the up by 1 unless at the most up where it will jump to right
-        elif action == 0:
+        if action == 0:
             bandwidth = self.user.getCurrentRequest().getBandwidth()
             if self.spectrumIndex == 0:
                 self.spectrumIndex = self.NUMBEROFSLOTS - bandwidth
@@ -851,9 +628,6 @@ class game_gym(gym.Env):
                 highlightedSpectrum[i + self.spectrumIndex] = 1
             for link in linksSelected:
                 link.setSpectrumHighlighted(highlightedSpectrum)
-
-            # self.reward = -1
-            # self.cum_reward += self.reward
 
 
         # if right is pressed then the selected should be shifted to the right by 1 unless at the most right where it will jump to up
@@ -869,9 +643,6 @@ class game_gym(gym.Env):
                 highlightedSpectrum[i + self.spectrumIndex] = 1
             for link in linksSelected:
                 link.setSpectrumHighlighted(highlightedSpectrum)
-
-            # self.reward = -1
-            # self.cum_reward += self.reward
 
         # if return is pressed, selected links should be checked for if they are valid and if they are they should be selected and links
         # should be updated
@@ -889,10 +660,14 @@ class game_gym(gym.Env):
                             # pygame.display.update()
                             # print("error")
                             possible = False
-                            self.reward -= 2
-                            # self.reward = -2
-                            # self.cum_reward += self.reward
+                            # self.reward -= 2
+                            # self.reward = -0.005
             if possible == True:
+                # self.reward += 100
+                self.reward = 0.5
+                self.reward -= (len(self.available_paths[self.index])*5)/200
+                self.reward += int((self.user.getCurrentRequest().timeLimit \
+                - (self.user.getCurrentRequest().timeStart - self.timer2))*2)/200
                 self.completions.append((self.user.getCurrentRequest(), linksSelected.copy(), link.getSpectrumHighlighted().copy()))
                 for link in linksSelected:
                     newSelected = [sum(x) for x in zip(link.getSpectrum(), link.getSpectrumHighlighted())]
@@ -906,9 +681,6 @@ class game_gym(gym.Env):
                 self.user.getCurrentRequest().setTimeAllocated(self.timer)
                 availableLinks = self.clearAll()
 
-                self.reward += 100
-                # self.reward = 100
-                # self.cum_reward += self.reward
 
         # elif action == 0 or action == 1:
         #     self.reward -= 5
@@ -1002,7 +774,7 @@ def main():
     check_env(eveon, warn=True)
     # model = DQN('MlpPolicy', eveon, verbose=1, buffer_size=100, device='cuda')
     # model.learn(total_timesteps=10000)
-    # model.save("DQNEveon")
+    # model.save("DQNEveon") 
 
     obs = eveon.reset()
     while True :
@@ -1012,7 +784,7 @@ def main():
         obs, rewards, dones, info = eveon.step(action)
         # print(action)
         if dones == True:
-            print(eveon.reward)
+            # print(eveon.cum_reward)
             # with open('info.json', 'w') as outfile:
             #     json.dump(info, outfile)
 

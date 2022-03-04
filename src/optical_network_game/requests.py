@@ -11,7 +11,7 @@ class Request:
         self.sourceNode = SourceNode
         self.destNode = DestNode
         self.bandWidth = BandWidth
-        self.timeLimit = 20
+        self.timeLimit = 2
         self.timeStart = timeStart
         self.timeAllocated = 0
         self.timeDeallocated = self.timeAllocated - 5
@@ -58,7 +58,7 @@ class Request:
 
     def setTimeAllocated(self, value):
         self.timeAllocated = value
-        self.timeDeallocated = value - 5
+        self.timeDeallocated = value - 10
 
     def getTimeDeallocated(self):
         return self.timeDeallocated
