@@ -1,3 +1,7 @@
+Train time 5 000 000 Timesteps: 485mins
+
+
+
 Rewards List for new model 040322:
 
 request time out -= 10 (SCORE -=5)
