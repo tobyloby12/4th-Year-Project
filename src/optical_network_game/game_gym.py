@@ -10,8 +10,37 @@ from stable_baselines3.common.env_checker import check_env
 import numpy as np
 # from stable_baselines.common.vec_env import DummyVecEnv
 # from stable_baselines.deepq.policies import MlpPolicy
+
+from stable_baselines3.common import results_plotter
+from stable_baselines3.common.monitor import Monitor
+from stable_baselines3.common.results_plotter import load_results, ts2xy, plot_results
+from stable_baselines3.common.callbacks import BaseCallback
+from stable_baselines3.common.evaluation import evaluate_policy
+import os
+os.environ["KMP_DUPLICATE_LIB_OK"]="TRUE"
+
+import numpy as np
+import tensorflow as tf
+
+#from stable_baselines.common.vec_env import DummyVecEnv
+#from stable_baselines.deepq.policies import MlpPolicy
 from stable_baselines3 import DQN
+from stable_baselines3 import A2C
 import json
+import cv2
+
+#additional code added by me just for testing
+import matplotlib
+import matplotlib.pyplot as plt
+import torch
+#importing IPython's display module to plot images
+is_ipython = 'inline' in matplotlib.get_backend()
+if is_ipython: from IPython import display
+from itertools import count
+import time
+from IPython.display import clear_output
+import tensorboard
+
 
 class game_gym(gym.Env):
     '''
@@ -64,7 +93,14 @@ class game_gym(gym.Env):
         self.requestList = requestList
         self.user = user
 
-        self.action_space = spaces.Discrete(7)
+        #ADDED also the req_num as the number of connection requests in the episode
+        self.req_num = len(requestList)
+        #debug
+        print(self.req_num)
+
+        #see if this changes things, setting action space to 6 actions only instead of 7 (original)
+        #changed to 4
+        self.action_space = spaces.Discrete(4)
         
         self.initialise_values()
         
@@ -102,6 +138,17 @@ class game_gym(gym.Env):
         # initialize score
         self.SCORE = 0
         self.reward = 0
+        
+        #ADDED cumulative reward
+        self.reward_sum = 0
+
+        #ADDED connection service flag (tracks the number of connections fulfilled)
+        self.req_complete = 0
+
+        #ADDED number of links in routing
+        self.num_links = 0
+        
+        
         # stores the requests available to the user in a list
         self.activeRequests = []
         # automatically selects the first request in the list when game starts
@@ -113,7 +160,7 @@ class game_gym(gym.Env):
         self.observation_space = spaces.Box(
             low= 0,
             high = 255,
-            shape= (self.WINDOWWIDTH, self.WINDOWHEIGHT, 3),
+            shape= (256, 256, 3),
             dtype=np.uint8
             )
 
@@ -141,14 +188,24 @@ class game_gym(gym.Env):
         Resets the game to start state
         '''
         self.initialise_values()
-        obs = np.array(pygame.surfarray.array3d(self.DISPLAYSURF), dtype=np.uint8)
+        obs = np.array(pygame.surfarray.array3d(self.DISPLAYSURF.subsurface((210, 0, 560, 600))), dtype=np.uint8)
+        obs = cv2.resize(obs, dsize=(256, 256))
         print(obs.shape)
         return obs
 
 
     def step(self, action):
-        print(action)
+        #debug print
+        #print("ACTION")
+        #print(action)
         
+
+        #TESTING THIS 
+        #resetting the self.reward variable to be 0, thus for every step, the reward 
+        #isnt the cumulative reward, rather the reward gained for the action state.
+        self.reward = 0
+        #cause the if action !=6 part sends the chosen agent action to return the reward
+
         for event in pygame.event.get():
             # If game screen is closed, Pygame is stopped
             if event.type == pygame.QUIT:
@@ -157,38 +214,53 @@ class game_gym(gym.Env):
             elif event.type == self.timer_event:
                 self.requestUpdate()
 
+            #editing this so only 4 actions
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_UP:
                     action =  0
                 elif event.key == pygame.K_DOWN:
                     action = 1
-                elif event.key == pygame.K_LEFT:
-                    action = 2
-                elif event.key == pygame.K_RIGHT:
-                    action = 3
+                #elif event.key == pygame.K_LEFT:
+                   #action = 2
+                #elif event.key == pygame.K_RIGHT:
+                    #action = 3
                 elif event.key == pygame.K_RETURN:
-                    action = 4
+                    #action = 4
+                    action = 2
                 elif event.key == pygame.K_BACKSPACE:
-                    action = 5
-        if action != 6:
-            if self.requestMode == True:
-                self.request_logic(action)
-            elif self.topologyMode == True:
-                self.topology_logic(action)
-            elif self.spectrumMode == True:
-                self.spectrum_logic(action)
+                    #action = 5
+                    action = 3
+        #if action != 4:
+        if self.requestMode == True:
+            self.request_logic(action)
+        elif self.topologyMode == True:
+            self.topology_logic(action)
+        elif self.spectrumMode == True:
+            self.spectrum_logic(action)
         
-        obs = np.array(pygame.surfarray.array3d(self.DISPLAYSURF), dtype=np.uint8)
+        obs = np.array(pygame.surfarray.array3d(self.DISPLAYSURF.subsurface((210, 0, 560, 600))), dtype=np.uint8)
+        obs = cv2.resize(obs, dsize=(256, 256))
 
         # if (self.timer < self.requestList[-1].getTimeStart() and self.activeRequests == []) or self.timer == 0:
         if self.timer == 0:
             self.done = True
-            print(self.reward)
+            #debug print
+            print("Cumulative Reward Obtained (GAME END):")
+            print(self.reward_sum)
 
         self.info[self.timer2] = {
             'display': obs,
             'user': self.user
             }
+
+        #debug THIS WORKS
+        #print("STEP REWARD:")
+        #print(self.reward)
+        #adds the reward to the cumulative reward variable
+        self.reward_sum += self.reward
+
+        #updates the score based on the cumulative reward
+        #self.SCORE += self.reward
 
         return obs, self.reward, self.done, self.info
     
@@ -219,7 +291,7 @@ class game_gym(gym.Env):
         #             return 6
 
 
-    def render(self):
+    def render(self, mode = "human"):
         '''
         Renders the game display screen and updates it per FPS value set. Includes drawing topolgy, requests, spectrum, score and timer.
         '''
@@ -227,7 +299,7 @@ class game_gym(gym.Env):
         #     # If game screen is closed, Pygame is stopped
         #     if event.type == pygame.QUIT:
         #         self.endGame()
-            
+        
             
         # creating game screen
         # fill the game screen with gray
@@ -287,7 +359,8 @@ class game_gym(gym.Env):
             link.drawSpectrum(self.DISPLAYSURF, link.getX() - self.SPECTRUMBOXWIDTH/2, link.getY() - self.SPECTRUMBOXHEIGHT/2)
 
         for node in self.nodeList:
-            node.drawNode(self.DISPLAYSURF, self.BLUE)
+            #try changing this to red?
+            node.drawNode(self.DISPLAYSURF, self.RED)
         
         
 
@@ -347,12 +420,12 @@ class game_gym(gym.Env):
         pygame.draw.rect(self.DISPLAYSURF, color, spectrumBox, 4)
 
         # drawing spectrum selected and unselected links
-        selectedLinks = []
+        self.selectedLinks = []
         for entry in self.user.getLinksSelected():
-            selectedLinks.append(entry[1])
+            self.selectedLinks.append(entry[1])
         unselectedLinks = self.linkList.copy()
         for link in self.linkList:
-            if link in selectedLinks:
+            if link in self.selectedLinks:
                 unselectedLinks.remove(link)
         
         # selected links text to display
@@ -363,27 +436,27 @@ class game_gym(gym.Env):
         self.DISPLAYSURF.blit(textsurface, (text_rect[0], self.HEADER + self.MARGIN))
         
         # drawing selected links
-        if selectedLinks != []:
-            for i in range(len(selectedLinks)):
-                textsurface = myfont.render(f'{selectedLinks[i].getName()}', False, self.WHITE)
+        if self.selectedLinks != []:
+            for i in range(len(self.selectedLinks)):
+                textsurface = myfont.render(f'{self.selectedLinks[i].getName()}', False, self.WHITE)
                 self.DISPLAYSURF.blit(textsurface, (self.MARGIN + self.INCOMINGREQUESTWIDTH + self.MARGIN + self.NETWORKTOPOLOGYWIDTH + self.MARGIN + 6, \
                     self.HEADER + self.MARGIN + (i + 1)*(self.SPECTRUMBOXHEIGHT + 5)))
-                selectedLinks[i].drawSpectrum(self.DISPLAYSURF, self.MARGIN + self.INCOMINGREQUESTWIDTH + self.MARGIN + self.NETWORKTOPOLOGYWIDTH + \
+                self.selectedLinks[i].drawSpectrum(self.DISPLAYSURF, self.MARGIN + self.INCOMINGREQUESTWIDTH + self.MARGIN + self.NETWORKTOPOLOGYWIDTH + \
                     self.MARGIN + 6 + 35, self.HEADER + self.MARGIN + (i + 1)*(self.SPECTRUMBOXHEIGHT + 5))
 
         # unselected links text to display
         textsurface = myfont.render(f'Unselected Links:', False, self.WHITE)
         text_rect = textsurface.get_rect(center=spectrumBox.center)
-        self.DISPLAYSURF.blit(textsurface, (text_rect[0], self.HEADER + self.MARGIN + (len(selectedLinks) + 1)*(self.SPECTRUMBOXHEIGHT + 5)))
+        self.DISPLAYSURF.blit(textsurface, (text_rect[0], self.HEADER + self.MARGIN + (len(self.selectedLinks) + 1)*(self.SPECTRUMBOXHEIGHT + 5)))
 
         # drawing unselected links
         if unselectedLinks != []:
             for i in range(len(unselectedLinks)):
                 textsurface = myfont.render(f'{unselectedLinks[i].getName()}', False, self.WHITE)
                 self.DISPLAYSURF.blit(textsurface, (self.MARGIN + self.INCOMINGREQUESTWIDTH + self.MARGIN + self.NETWORKTOPOLOGYWIDTH + self.MARGIN + 6, \
-                    self.HEADER + self.MARGIN + (len(selectedLinks) + 1)*(self.SPECTRUMBOXHEIGHT + 5) + (i + 1)*(self.SPECTRUMBOXHEIGHT + 5)))
+                    self.HEADER + self.MARGIN + (len(self.selectedLinks) + 1)*(self.SPECTRUMBOXHEIGHT + 5) + (i + 1)*(self.SPECTRUMBOXHEIGHT + 5)))
                 unselectedLinks[i].drawSpectrum(self.DISPLAYSURF, self.MARGIN + self.INCOMINGREQUESTWIDTH + self.MARGIN + self.NETWORKTOPOLOGYWIDTH + \
-                    self.MARGIN + 6 + 35, self.HEADER + self.MARGIN + (len(selectedLinks) + 1)*(self.SPECTRUMBOXHEIGHT + 5) + \
+                    self.MARGIN + 6 + 35, self.HEADER + self.MARGIN + (len(self.selectedLinks) + 1)*(self.SPECTRUMBOXHEIGHT + 5) + \
                     (i + 1)*(self.SPECTRUMBOXHEIGHT + 5))
 
 
@@ -420,8 +493,28 @@ class game_gym(gym.Env):
             # THEN the request is considered blocked and score decreases. Request is also de-activated
             if self.timer == request.timeStart - request.timeLimit + 1:
                 request.setBlock(True)
-                self.SCORE -= 1
-                self.reward -= 100
+
+                #COMMENTED OUT, TESTING SCORE PRINTOUT
+                #changed to -5 from -1
+                self.SCORE -= 5
+
+                #changed to -1
+                #reward expiry
+                #self.reward -= 100
+                self.reward -= 10
+                
+                #adding to the req_complete flag 
+                self.req_complete += 1
+
+                if self.req_complete == self.req_num:
+
+                    #if the only connection expires then the episode ends
+                    #debug
+                    #changed this so that if the connection which expires is the final conn then the episode ends
+                    print("Request Timed Out, cumulative Reward:")
+                    print(self.reward_sum)
+                    self.done = True
+
                 try:
                     self.activeRequests.remove(request)
                 except:
@@ -468,6 +561,26 @@ class game_gym(gym.Env):
         # IF there are not active requests
         # THEN do nothing
         if self.activeRequests == []:
+            
+            #placeholder reward to test 
+            #changed to 2 from 4
+            if action == 2:
+                #print("no request (enter) reward")
+                #originally set to + 10
+                #self.reward += 30
+                
+                #testing this normalised
+                #self.reward += 0.3
+                self.reward += 0.3
+
+            elif action == 0 or action == 1 or action == 3: 
+                #originally set to -10
+                #self.reward -= 1
+
+                #testing this normalised
+                #self.reward -= 1
+                self.reward -= 1
+
             pass
 
         else:
@@ -490,7 +603,13 @@ class game_gym(gym.Env):
                 # deselects the old request and selects the new one
                 self.user.deselectRequest()
                 self.user.selectRequest(self.activeRequests[requestIndex])
-                self.reward -= 1
+
+                #Experimenting reward function
+                #unchanged
+                #self.reward -= 1
+
+                #testing this normalised
+                self.reward -= 0.3
 
             # IF UP arrow key is pressed
             # THEN the request above the current one is selected
@@ -505,13 +624,39 @@ class game_gym(gym.Env):
                 self.user.deselectRequest()
                 self.user.selectRequest(self.activeRequests[requestIndex])
 
-                self.reward -= 1
+                #Experimenting reward function
+                #unchanged
+                #self.reward -= 1
+
+                #testing this normalised
+                self.reward -= 0.3
             
             # IF ENTER key is pressed
             # THEN the user moves to the topology space to service the request selected
-            elif action == 4:
+            #changed from 4 to 2
+            elif action == 2:
+                #self.reward += 0
+                #experimenting reward function
+                #changed to +10 originally
+                #changed to 20 on latest run
+                #print("enter with request")
+                #self.reward += 30
+
+                #testing this normalised
+                self.reward += 0.3
+                
                 self.requestMode = False
                 self.topologyMode = True
+                #set number of links value to 0 upon initiation of topology mode
+                self.num_links = 0
+
+                #adding score reward for progressing from game mode
+                self.SCORE += 1
+
+                #TESTING if agent gets reward = current cumulative reward in each mode (so basically reset to 0 or times 2 if -ve or +ve)
+                #might need to change this to just adding like 20 as a one step reward if the agent passes into a new stage
+                #self.reward += 100
+
                 # user automatically starts at the source node of the request
                 self.user.setCurrentNode(self.user.currentRequest.getSourceNode())
                 # source node is automatically set as selected
@@ -522,16 +667,23 @@ class game_gym(gym.Env):
                 # defines index for use in topology space
                 self.index = 0
 
-                self.reward += 0
-
-            elif action == 2 or action == 3 or action == 5:
-                self.reward -= 5
+                
+            #changed to only backspace (action 3)
+            elif action == 3:
+                #if left right or backspace pressed
+                #experimenting reward function
+                #changed to -10
+                #self.reward -= 5
+                
+                #testing this normalised
+                self.reward -= 1
             
 
 
     def topology_logic(self, action):
         # IF BACKSPACE key is pressed
-        if action == 5:
+        #changed to 3 for backspace from 5
+        if action == 3:
             # IF BACKSPACE key is pressed and the user is at the source node
             # THEN the user moves back to selecting a request, highlights will be reset
             if self.user.getCurrentNode() == self.user.getCurrentRequest().getSourceNode():
@@ -543,16 +695,46 @@ class game_gym(gym.Env):
                     link.setSelected(False)
                 self.requestMode = True
                 self.topologyMode = False
+
+                #returning to request mode action
+                #experimenting reward function
+                #changed to -10
+                #self.reward -= 1
+                #self.reward -= 10
+
+                #testing this normalised
                 self.reward -= 1
+
+                #adding visual score screen update set to -5 first
+                self.SCORE -= 5
+                
             # IF BACKSPACE key is pressed and the user is not at the source node
             # THEN the user moves back to previous node
             else:
+                links_selected = self.user.getLinksSelected()
+                highlightedSpectrum = [0]*NUMBEROFSLOTS
+                links_selected[-1][1].setSpectrumHighlighted(highlightedSpectrum)
+                
                 # define previous node and link pair from selected links list
                 previous = self.user.getLinksSelected()[-1]
                 # deselects the current node user is at
                 self.user.getCurrentNode().setSelected(False)
                 # selects the pervious node user was at
                 self.user.setCurrentNode(previous[0])
+
+
+                #experimenting reward function
+                #undoing routing selection
+                #set to -1
+                #self.reward -= 1
+
+                #testing this normalised
+                #changed to -0.3 from -0.1
+                self.reward -= 0.2
+
+                #reducing number of links
+                self.num_links -= 1
+
 
                 # deselects the link user chose to get to the current node
                 previous[1].setSelected(False)
@@ -588,6 +770,14 @@ class game_gym(gym.Env):
         # IF UP arrow key is pressed
         # THEN the link above the current one is selected
         if action == 0:
+            
+            #CONDITIONAL STATEMENT TO CHECK NODE ALLOCATION
+            #if the current node selected was the destination node then penalise agent for moving away
+            if self.user.getCurrentNode() == self.user.getCurrentRequest().getDestNode():
+                #initial reward setting
+                self.reward -= 1
+            #then carry on the rest of the code
+            
             # de-highlights the current link
             availableLinks[self.index][0].setHighlighted(False)
             availableLinks[self.index][1].setHighlighted(False)
@@ -600,11 +790,37 @@ class game_gym(gym.Env):
             # highlights the current link
             availableLinks[self.index][0].setHighlighted(True)
             availableLinks[self.index][1].setHighlighted(True)
-            self.reward -= 1
+
+
+            #CONDITIONAL STATEMENT TO CHECK NODE AFTER MOVEMENT
+            #if the new node is the dest node then positive reward agent
+            if self.user.getCurrentNode() == self.user.getCurrentRequest().getDestNode():
+                self.reward += 5
+
+            #else if the new node selected is not the destinatino node then negative reward
+            elif self.user.getCurrentNode() != self.user.getCurrentRequest().getDestNode():
+                #initial reward
+                self.reward -= 0
+
+            #Experimenting reward function
+            #unchanged
+            #self.reward -= 1
+
+            #testing this normalised
+            #changed to 0.4 from 0.5
+            #self.reward += 0.4
 
         # IF DOWN arrow key is pressed
         # THEN the link below the current one is selected
         elif action == 1:
+            
+            #CONDITIONAL STATEMENT TO CHECK NODE ALLOCATION
+            #if the current node selected was the destination node then penalise agent for moving away
+            if self.user.getCurrentNode() == self.user.getCurrentRequest().getDestNode():
+                #initial reward setting
+                self.reward -= 1
+            #then carry on the rest of the code
+            
             # de-highlights the current link
             availableLinks[self.index][0].setHighlighted(False)
             availableLinks[self.index][1].setHighlighted(False)
@@ -617,14 +833,50 @@ class game_gym(gym.Env):
             # highlights the current link
             availableLinks[self.index][0].setHighlighted(True)
             availableLinks[self.index][1].setHighlighted(True)
-            self.reward -= 1
+
+            
+            #CONDITIONAL STATEMENT TO CHECK NODE AFTER MOVEMENT
+            #if the new node is the dest node then positive reward agent
+            if self.user.getCurrentNode() == self.user.getCurrentRequest().getDestNode():
+                self.reward += 5
+
+            #else if the new node selected is not the destinatino node then negative reward
+            elif self.user.getCurrentNode() != self.user.getCurrentRequest().getDestNode():
+                #initial reward
+                self.reward -= 0
+
+
+            #Experimenting reward function
+            #unchanged
+            #self.reward -= 1
+
+            #testing this normalised
+            #changed to 0.4 from 0.5
+            #self.reward += 0.4
 
         # IF ENTER key is pressed
         # THEN the user selects the link and moves to the adjacent node
-        elif action == 4:
-            self.reward += 1
+        #changed to 2 from 4 for smaller action steps
+        elif action == 2:
+            
+            #experimenting reward function
+            #commented out for now
+            #self.reward += 1
+            
             # IF ENTER key is pressed and user has not reached the destination node
             if self.user.getCurrentNode() != self.user.getCurrentRequest().getDestNode():
+                 #routing to a non destination node
+                #Experimenting reward function
+                #changed to +1
+                #self.reward -= 5
+                #self.reward += 1
+
+                #testing this normalised
+                self.reward -= 5
+
+                #increasing number of links
+                self.num_links += 1
+
                 # IF the selected link does not move the user to the destination node
                 # THEN the link and node is de-highlighted and set to selected,
                 # user moves to the adjacent node connected to the selected link
@@ -645,6 +897,17 @@ class game_gym(gym.Env):
                     if availableLinks != []:
                         availableLinks[self.index][0].setHighlighted(True)
                         availableLinks[self.index][1].setHighlighted(True)
+
+                        # need to include selecting first few slots automatically
+                        bandwidth = self.user.getCurrentRequest().getBandwidth()
+                        linksSelected = [link[1] for link in self.user.getLinksSelected()]
+                        highlightedSpectrum = [0]*self.NUMBEROFSLOTS
+                        for i in range(bandwidth):
+                            highlightedSpectrum[i] = 1
+                        for link in linksSelected:
+                            link.setSpectrumHighlighted(highlightedSpectrum)
+                        self.spectrumIndex = 0
+
                     else:
                         # undo selection
                         # define previous node and link pair from selected links list
@@ -669,7 +932,8 @@ class game_gym(gym.Env):
                         availableLinks[self.index][0].setHighlighted(True)
                         availableLinks[self.index][1].setHighlighted(True)
                         self.DISPLAYSURF.fill(self.RED)
-                        self.reward -= 5
+
+                   
 
                 # ELSE IF the selected link moves the user to the destination node
                 # THEN the link and node is de-highlighted and set to selected,
@@ -684,6 +948,9 @@ class game_gym(gym.Env):
                     self.topologyMode = False
                     self.spectrumMode = True
 
+                    #adding number of links to be 1 from reset value of 0
+                    self.num_links += 1
+
                     # need to include selecting first few slots automatically
                     bandwidth = self.user.getCurrentRequest().getBandwidth()
                     linksSelected = [link[1] for link in self.user.getLinksSelected()]
@@ -693,9 +960,62 @@ class game_gym(gym.Env):
                     for link in linksSelected:
                         link.setSpectrumHighlighted(highlightedSpectrum)
                     self.spectrumIndex = 0
+                    
+                    #moving to spectrum mode
+
+                    #CONDITIONAL REWARDS FOR NUMBER OF LINKS
+                    #if the shortest route was chosen give huge reward
+                    if len(linksSelected) == 1:
+                        #debug print
+                        #print("1 link")                       
+                        #print(len(linksSelected))
+                        #print(self.num_links)
+                        self.reward += 10
+                        self.SCORE += 5
+
+                    #if route chosen was 2 links, give small negative reward
+                    elif len(linksSelected) == 2:
+                        #debug print
+                        #print("2 links")
+                        #print(len(linksSelected))
+                        #print(self.num_links)
+                        self.reward -= 50
+                        self.SCORE -= 1
+
+                    #if route chosen was greater than or equal to 3 links, give large negative reward
+                    elif len(linksSelected) >= 3:
+                        #debug print
+                        #print("more than 3 links")
+                        self.reward -= 100
+                        self.SCORE -= 5
+
+
+                    #Experimenting reward function
+                    #added reward + 20
+                    #self.reward += 30
+
+                    #testing this normalised
+                    #changed from 1 to 2
+                    #self.reward += 2
+
+                    #adding score reward for progressing from game mode
+                    #changed to 4 from 2
+                    #self.SCORE += 4
+
+                    #TESTING if agent gets reward = current cumulative reward in each mode (so basically reset to 0 or times 2 if -ve or +ve)
+                    #might need to change this to just adding like 20 as a one step reward if the agent passes into a new stage
+                    #self.reward += 100
         
-        elif action == 2 or action == 3:
-            self.reward -= 5
+        #commented out as left and right not used anymore
+        #elif action == 2 or action == 3:
+            #Experimenting reward function
+            #if left or right used
+            #changed to -20
+            #self.reward -= 5
+            #self.reward -= 20
+
+            #testing this normalised
+            #self.reward -= 1
 
 
     def spectrum_logic(self, action):
@@ -704,16 +1024,21 @@ class game_gym(gym.Env):
         # selected links should be deselected
         # automatically highlight links
         # removes the links from user selected links
-        if action == 5:
+        #changed to 3 from 5 for new backsapce action value
+        if action == 3:
             self.topologyMode = True
             self.spectrumMode = False
 
-            linksSelected = [link[1] for link in self.user.getLinksSelected()]
-            highlightedSpectrum = [0]*NUMBEROFSLOTS
-            for link in linksSelected:
-                link.setSpectrumHighlighted(highlightedSpectrum)
-
+            #linksSelected = [link[1] for link in self.user.getLinksSelected()]
             links_selected = self.user.getLinksSelected()
+            highlightedSpectrum = [0]*NUMBEROFSLOTS
+            #for link in linksSelected:
+            #    link.setSpectrumHighlighted(highlightedSpectrum)
+
+            links_selected[-1][1].setSpectrumHighlighted(highlightedSpectrum)
+
+            #links_selected = self.user.getLinksSelected()
+
             self.user.setCurrentNode(links_selected[-1][0])
             links_selected[-1][1].setSelected(False)
             self.user.getCurrentRequest().getDestNode().setSelected(False)
@@ -721,11 +1046,23 @@ class game_gym(gym.Env):
             availableLinks[self.index][0].setHighlighted(True)
             availableLinks[self.index][1].setHighlighted(True)
             self.user.getLinksSelected().remove(links_selected[-1])
-            self.reward -= 1
+
+            #returning to topology mode
+            #Experimenting reward function
+            #changed to -20
+            #self.reward -= 1
+            #self.reward -= 20
+
+            #testing this normalised
+            self.reward -= 3
+
+            #setting visual changes to the score screen set to -5 for now
+            self.SCORE -= 5
             
 
         # if left is pressed then the selected should be shifted to the left by 1 unless at the most left where it will jump to right
-        elif action == 2:
+        #LEFT CHANGED TO UP action is now 0 from 2
+        elif action == 0:
             bandwidth = self.user.getCurrentRequest().getBandwidth()
             if self.spectrumIndex == 0:
                 self.spectrumIndex = self.NUMBEROFSLOTS - bandwidth
@@ -737,11 +1074,18 @@ class game_gym(gym.Env):
                 highlightedSpectrum[i + self.spectrumIndex] = 1
             for link in linksSelected:
                 link.setSpectrumHighlighted(highlightedSpectrum)
-            self.reward -= 1
+
+            #Experimenting reward function
+            #unchanged
+            #self.reward -= 1
+
+            #testing this normalised
+            self.reward += 1
 
 
         # if right is pressed then the selected should be shifted to the right by 1 unless at the most right where it will jump to left
-        elif action == 3:
+        #RIGHT CHANGED TO down action is now 1 from 2
+        elif action == 1:
             bandwidth = self.user.getCurrentRequest().getBandwidth()
             if self.spectrumIndex == self.NUMBEROFSLOTS - bandwidth:
                 self.spectrumIndex = 0
@@ -753,12 +1097,19 @@ class game_gym(gym.Env):
                 highlightedSpectrum[i + self.spectrumIndex] = 1
             for link in linksSelected:
                 link.setSpectrumHighlighted(highlightedSpectrum)
-            self.reward -= 1
+            
+            #Experimenting reward function
+            #unchanged
+            #self.reward -= 1
+
+            #testing this normalised
+            self.reward += 1
 
         # if return is pressed, selected links should be checked for if they are valid and if they are they should be selected and links
         # should be updated
         # otherwise an error message should pop up
-        elif action == 4:
+        #changed from 4 to 2 for enter
+        elif action == 2:
             # check that there are no conflicts
             linksSelected = [link[1] for link in self.user.getLinksSelected()]
             possible = True
@@ -771,7 +1122,9 @@ class game_gym(gym.Env):
                             # pygame.display.update()
                             # print("error")
                             possible = False
-                            self.reward -= 5
+                            
+                            
+
             if possible == True:
                 self.completions.append((self.user.getCurrentRequest(), self.user.getLinksSelected().copy(), link.getSpectrumHighlighted().copy()))
                 for link in linksSelected:
@@ -780,15 +1133,64 @@ class game_gym(gym.Env):
                     highlightedSpectrum = [0]*5
                     link.setSpectrumHighlighted(highlightedSpectrum)
                 # throw back into request mode and add point and deselect highlighted spectrum, remove request
-                self.SCORE += 1
+                
+                #COMMENTED OUT, TESTING SCORE PRINTOUT
+                #set to 10 from +1
+                self.SCORE += 10
+                
                 self.user.getCurrentRequest().complete()
                 self.activeRequests.remove(self.user.getCurrentRequest())
                 self.user.getCurrentRequest().setTimeAllocated(self.timer)
                 availableLinks = self.clearAll()
-                self.reward += 100
 
-        elif action == 0 or action == 1:
-            self.reward -= 5
+                #successful spectrum assignment (one connection serviced)
+                #experimenting reward function
+                #changed to + 30
+                #self.reward += 100
+                #self.reward += 30
+
+                #testing this normalised
+                #set to +10 from 1
+                self.reward += 1
+                
+                #TESTING if agent gets reward = current cumulative reward in each mode (so basically reset to 0 or times 2 if -ve or +ve)
+                #might need to change this to just adding like 20 as a one step reward if the agent passes into a new stage
+                #self.reward += 100
+                
+
+                #adding to the req_complete flag 
+                self.req_complete += 1
+
+                if self.req_complete == self.req_num:
+                    #changed so that if the number of requests is serviced then the episode ends
+                    #debug
+                    print("End episode, cumulative Reward:")
+                    print(self.reward_sum)
+                    #CHANGE THIS SO THAT IT SUCCESSFULLY ENDS THE GAME UPON CONNECTION SERVICED
+                    self.done = True
+            
+            else:
+                #invalid spectrum assignment
+                #Experimenting reward function
+                #changed to - 10
+                #self.reward -= 5
+                #self.reward -= 30
+
+                #testing this normalised
+                self.reward -= 50
+                #setting such that score is minused
+                self.SCORE -= 1
+
+        #commented out as they are not used now
+        #elif action == 0 or action == 1:
+            #if up or down are used (irrelevant controls in this mode)
+            #experimenting reward function 
+            #changed to -20
+            #self.reward -= 5
+            #self.reward -= 20
+
+            #testing this normalised
+            #self.reward -= 1
 
     def checkAvailable(self):
         '''
