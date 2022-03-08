@@ -67,6 +67,7 @@ class Request:
         return self.timeStart
 
 def generateRequests(listOfNodes, numberOfRequests):
+    random.seed(42)
     requestsList = []
 
     # creating requests

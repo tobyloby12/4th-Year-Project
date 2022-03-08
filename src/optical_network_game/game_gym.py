@@ -115,6 +115,8 @@ class game_gym(gym.Env):
         # setting value to end episode
         self.done = False
 
+        self.false_counter = 0
+
         # creating observation space for gym
         self.observation_space = spaces.Box(
             low= 0,
@@ -196,40 +198,17 @@ class game_gym(gym.Env):
         if (self.timer < self.requestList[-1].getTimeStart() and self.activeRequests == []) or self.timer == 0:
         # if self.timer == 0:
             self.done = True
-            print(f'Total reward for this episode is {self.cum_reward}')
+            print(f'Total reward for this episode is {self.cum_reward*200}')
 
         self.info[self.timer2] = {
             'display': obs,
             'user': self.user
             }
 
-        return obs, self.reward, self.done, self.info
-    
-    # def get_action(self):
-        
-        #  for event in pygame.event.get():
-        #     # If game screen is closed, Pygame is stopped
-        #     if event.type == pygame.QUIT:
-        #         self.endGame()
-        # # Updates requests and reduces timer every second
-        #     elif event.type == self.timer_event:
-        #         self.requestUpdate()
+        if self.done == True:
+            self.reward += (60 - self.timer)*4/200
 
-        #     elif event.type == pygame.KEYDOWN:
-        #         if event.key == pygame.K_UP:
-        #             return 0
-        #         elif event.key == pygame.K_DOWN:
-        #             return 1
-        #         elif event.key == pygame.K_up:
-        #             return 2
-        #         elif event.key == pygame.K_RIGHT:
-        #             return 3
-        #         elif event.key == pygame.K_RETURN:
-        #             return 4
-        #         elif event.key == pygame.K_BACKSPACE:
-        #             return 5
-        #         else:
-        #             return 6
+        return obs, self.reward, self.done, self.info
 
 
     def render(self):
@@ -575,7 +554,8 @@ class game_gym(gym.Env):
         # IF ENTER key is pressed
         # THEN the user selects the link and moves to the adjacent node
         elif action == 2:
-
+            self.reward = (max([len(path_length) for path_length in self.available_paths]) - \
+                (len(self.available_paths[self.index])*5))/200
             for item in self.available_paths[self.index]:
                 item.setHighlighted(False)
             
@@ -617,6 +597,7 @@ class game_gym(gym.Env):
 
         # if up is pressed then the selected should be shifted to the up by 1 unless at the most up where it will jump to right
         if action == 0:
+            self.false_counter = 0
             bandwidth = self.user.getCurrentRequest().getBandwidth()
             if self.spectrumIndex == 0:
                 self.spectrumIndex = self.NUMBEROFSLOTS - bandwidth
@@ -632,6 +613,7 @@ class game_gym(gym.Env):
 
         # if right is pressed then the selected should be shifted to the right by 1 unless at the most right where it will jump to up
         elif action == 1:
+            self.false_counter = 0
             bandwidth = self.user.getCurrentRequest().getBandwidth()
             if self.spectrumIndex == self.NUMBEROFSLOTS - bandwidth:
                 self.spectrumIndex = 0
@@ -661,11 +643,15 @@ class game_gym(gym.Env):
                             # print("error")
                             possible = False
                             # self.reward -= 2
-                            # self.reward = -0.005
+                            self.reward = -0.005
+                            self.false_counter += 1
+                            if self.false_counter == 5:
+                                self.done = True
             if possible == True:
+                self.false_counter = 0
                 # self.reward += 100
                 self.reward = 0.5
-                self.reward -= (len(self.available_paths[self.index])*5)/200
+                # self.reward -= (len(self.available_paths[self.index])*5)/200
                 self.reward += int((self.user.getCurrentRequest().timeLimit \
                 - (self.user.getCurrentRequest().timeStart - self.timer2))*2)/200
                 self.completions.append((self.user.getCurrentRequest(), linksSelected.copy(), link.getSpectrumHighlighted().copy()))
