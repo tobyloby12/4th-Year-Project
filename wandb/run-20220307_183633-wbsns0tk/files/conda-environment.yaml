@@ -1,0 +1,4 @@
+name: RL
+channels:
+  - defaults
+prefix: D:\Programs\Anaconda\envs\RL\envs\RL

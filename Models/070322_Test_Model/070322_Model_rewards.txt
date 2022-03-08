@@ -1,0 +1,38 @@
+Train time 5 000 000 Timesteps: 485mins
+
+
+
+Rewards List for new model 040322:
+
+request time out -= 1 (SCORE -=5)
+
+
+Request logic
+no active requests
+enter += 0.3
+up down backspace -= 1
+
+active requests
+up down -= 0.3
+enter += 0.3 (SCORE += 1)
+backspace -= 1
+
+topology logic
+backspace (to req mode) -= 1 (SCORE -= 5)
+backspace (undo routing) -= 0.2
+up down (IF move from dest node) -= 1
+up down (IF move to dest node) += 5
+up down (IF move from non dest to non dest node) -= 0
+Enter (not to dest node) -= 5
+
+Enter (to dest node) 
+Links = 1 += 10 (SCORE += 5)
+Links = 2 -= 50 (SCORE -= 1)
+Links >= 3 -= 100 (SCORE -= 5)
+
+
+Spectrum logic
+backspace (to top mode) -= 3 (SCORE -= 5)
+up down += 1
+Enter (valid alloc) += 1 (SCORE += 10)
+Enter (invalid alloc) -= 50 (SCORE -= 1)

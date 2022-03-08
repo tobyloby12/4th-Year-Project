@@ -1,0 +1,8 @@
+wandb_version: 1
+
+Gamma:
+  value: 0.92
+Tau:
+  value: 0.4
+learning_rate:
+  value: 0.01
