@@ -25,6 +25,9 @@ from pygame.locals import *
 from gym import spaces
 from stable_baselines3.common.env_checker import check_env
 
+#additional code added by me just for testing
+import matplotlib
+import matplotlib.pyplot as plt
 #importing IPython's display module to plot images
 is_ipython = 'inline' in matplotlib.get_backend()
 if is_ipython: from IPython import display
@@ -39,13 +42,14 @@ importlib.reload(optical_network_game.game_gym)
 from optical_network_game.game_gym import *
 
 
-
-N_TRIALS = 100
-N_STARTUP_TRIALS = 5
-N_EVALUATIONS = 2
-N_TIMESTEPS = int(2e4)
+#TUNING PARAMETERS 
+#You can change these to edit the tuning process
+N_TRIALS = 50
+N_STARTUP_TRIALS = 2
+N_EVALUATIONS = 1
+N_TIMESTEPS = int(100000)
 EVAL_FREQ = int(N_TIMESTEPS / N_EVALUATIONS)
-N_EVAL_EPISODES = 3
+N_EVAL_EPISODES = 2
 
 #ENV_ID = "CartPole-v1"
 
@@ -56,10 +60,17 @@ nodeList, linkList = createTestTopology()
 requestList = generateRequests(nodeList, 6)
 user = User()
 
-
+#DEFAULT MODEL PARAMETERS
+#Change cuda to auto if you are not using a computer with CUDA Enabled GPU
 DEFAULT_HYPERPARAMS = {
     "policy": "MlpPolicy",
+    "buffer_size": 10000,
+    #"eps_fraction": 0.8,
+    "exploration_final_eps": 0.05,
+    "train_freq": (1000, "step"),
+    "target_update_interval": 10000,
     #"env": ENV_ID,
+    "device": "cuda",
 }
 
 
@@ -71,33 +82,33 @@ def sample_dqn_params(trial: optuna.Trial) -> Dict[str, Any]:
     """
     gamma = trial.suggest_categorical("gamma", [0.9, 0.95, 0.98, 0.99, 0.995, 0.999, 0.9999])
     learning_rate = trial.suggest_loguniform("learning_rate", 1e-5, 1)
-    batch_size = trial.suggest_categorical("batch_size", [16, 32, 64, 100, 128, 256, 512])
-    buffer_size = trial.suggest_categorical("buffer_size", [int(1e4), int(5e4), int(1e5), int(1e6)])
-    exploration_final_eps = trial.suggest_uniform("exploration_final_eps", 0, 0.2)
+    #batch_size = trial.suggest_categorical("batch_size", [16, 32, 64, 100, 128, 256, 512])
+    #buffer_size = trial.suggest_categorical("buffer_size", [int(1e4), int(5e4), int(1e5), int(1e6)])
+    #exploration_final_eps = trial.suggest_uniform("exploration_final_eps", 0, 0.2)
     exploration_fraction = trial.suggest_uniform("exploration_fraction", 0, 0.5)
-    target_update_interval = trial.suggest_categorical("target_update_interval", [1, 1000, 5000, 10000, 15000, 20000])
+    target_update_interval = trial.suggest_categorical("target_update_interval", [10000, 15000, 20000])
     learning_starts = trial.suggest_categorical("learning_starts", [0, 1000, 5000, 10000, 20000])
 
-    train_freq = trial.suggest_categorical("train_freq", [1, 4, 8, 16, 128, 256, 1000])
-    subsample_steps = trial.suggest_categorical("subsample_steps", [1, 2, 4, 8])
-    gradient_steps = max(train_freq // subsample_steps, 1)
+    #train_freq = trial.suggest_categorical("train_freq", [1, 4, 8, 16, 128, 256, 1000])
+    #subsample_steps = trial.suggest_categorical("subsample_steps", [1, 2, 4, 8])
+    #gradient_steps = max(train_freq // subsample_steps, 1)
 
-    net_arch = trial.suggest_categorical("net_arch", ["tiny", "small", "medium"])
+    #net_arch = trial.suggest_categorical("net_arch", ["tiny", "small", "medium"])
 
-    net_arch = {"tiny": [64], "small": [64, 64], "medium": [256, 256]}[net_arch]
+    #net_arch = {"tiny": [64], "small": [64, 64], "medium": [256, 256]}[net_arch]
 
     hyperparams = {
         "gamma": gamma,
         "learning_rate": learning_rate,
-        "batch_size": batch_size,
-        "buffer_size": buffer_size,
-        "train_freq": train_freq,
-        "gradient_steps": gradient_steps,
+        #"batch_size": batch_size,
+        #"buffer_size": buffer_size,
+        #"train_freq": train_freq,
+        #"gradient_steps": gradient_steps,
         "exploration_fraction": exploration_fraction,
-        "exploration_final_eps": exploration_final_eps,
+        #"exploration_final_eps": exploration_final_eps,
         "target_update_interval": target_update_interval,
         "learning_starts": learning_starts,
-        "policy_kwargs": dict(net_arch=net_arch),
+        #"policy_kwargs": dict(net_arch=net_arch),
     }
 
     #if trial.using_her_replay_buffer:
@@ -148,7 +159,10 @@ def objective(trial: optuna.Trial) -> float:
     # Sample hyperparameters
     kwargs.update(sample_dqn_params(trial))
     # Create the RL model
-    model = DQN(**kwargs)
+    enveon = game_gym(nodeList, linkList, requestList, user)
+    check_env(enveon)
+
+    model = DQN(**kwargs, env=enveon)
     # Create env used for evaluation
     #INSERT GAME_GYM EON ENV
     eval_env = game_gym(nodeList, linkList, requestList, user)
