@@ -11,10 +11,10 @@ class Request:
         self.sourceNode = SourceNode
         self.destNode = DestNode
         self.bandWidth = BandWidth
-        self.timeLimit = 2
+        self.timeLimit = 60
         self.timeStart = timeStart
         self.timeAllocated = 0
-        self.timeDeallocated = self.timeAllocated - 5
+        self.timeDeallocated = self.timeAllocated - 10
         self.completed = False
         self.blocked = False
         self.isSelected = False

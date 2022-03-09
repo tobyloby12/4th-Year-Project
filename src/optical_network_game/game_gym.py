@@ -196,9 +196,8 @@ class game_gym(gym.Env):
         obs = cv2.resize(obs, dsize=(256, 256))
         self.cum_reward += self.reward
         if (self.timer < self.requestList[-1].getTimeStart() and self.activeRequests == []) or self.timer == 0:
-        # if self.timer == 0:
             self.done = True
-            print(f'Total reward for this episode is {self.cum_reward*200}')
+            print('Time is up.')
 
         self.info[self.timer2] = {
             'display': obs,
@@ -206,9 +205,12 @@ class game_gym(gym.Env):
             }
 
         if self.done == True:
-            self.reward += (60 - self.timer)*4/200
+            self.reward -= (len(self.requestList) - len([request for request in self.requestList if request.complete == True]))*100/200
+            # self.reward += (60 - self.timer)*4/200
+            self.cum_reward += self.reward
+            print(f'Total reward for this episode is {self.cum_reward*200}')
 
-        return obs, self.reward, self.done, self.info
+        return obs, self.reward*200, self.done, self.info
 
 
     def render(self):
@@ -254,7 +256,7 @@ class game_gym(gym.Env):
         '''
         pygame.font.init()
         myfont = pygame.font.SysFont('Calibri', 30)
-        textsurface = myfont.render(f'SCORE: {str(self.cum_reward)}', False, WHITE)
+        textsurface = myfont.render(f'SCORE: {str(self.cum_reward*200)}', False, WHITE)
         self.DISPLAYSURF.blit(textsurface, (self.WINDOWWIDTH/2-70, 15))
 
 
@@ -414,7 +416,7 @@ class game_gym(gym.Env):
                 request.setBlock(True)
                 self.SCORE -= 1
                 # self.reward -=200
-                self.reward = -1
+                # self.reward = -1
                 try:
                     self.activeRequests.remove(request)
                 except:
@@ -554,8 +556,9 @@ class game_gym(gym.Env):
         # IF ENTER key is pressed
         # THEN the user selects the link and moves to the adjacent node
         elif action == 2:
-            self.reward = (max([len(path_length) for path_length in self.available_paths]) - \
-                (len(self.available_paths[self.index])*5))/200
+            # self.reward = (5+max([len(path_length) for path_length in self.available_paths]) - \
+            #     (len(self.available_paths[self.index])))*20/200
+        
             for item in self.available_paths[self.index]:
                 item.setHighlighted(False)
             
@@ -568,6 +571,7 @@ class game_gym(gym.Env):
             # need to include selecting first few slots automatically
             bandwidth = self.user.getCurrentRequest().getBandwidth()
             linksSelected = [link for link in self.available_paths[self.index] if type(link) is Link]
+            self.reward = (5 - (len(linksSelected)))*20/200
             highlightedSpectrum = [0]*self.NUMBEROFSLOTS
             for i in range(bandwidth):
                 highlightedSpectrum[i] = 1
@@ -643,17 +647,15 @@ class game_gym(gym.Env):
                             # print("error")
                             possible = False
                             # self.reward -= 2
-                            self.reward = -0.005
-                            self.false_counter += 1
-                            if self.false_counter == 5:
-                                self.done = True
+                            self.reward = -0.3
+                            
             if possible == True:
                 self.false_counter = 0
                 # self.reward += 100
                 self.reward = 0.5
                 # self.reward -= (len(self.available_paths[self.index])*5)/200
-                self.reward += int((self.user.getCurrentRequest().timeLimit \
-                - (self.user.getCurrentRequest().timeStart - self.timer2))*2)/200
+                # self.reward += int((self.user.getCurrentRequest().timeLimit \
+                # - (self.user.getCurrentRequest().timeStart - self.timer2))*2)/200
                 self.completions.append((self.user.getCurrentRequest(), linksSelected.copy(), link.getSpectrumHighlighted().copy()))
                 for link in linksSelected:
                     newSelected = [sum(x) for x in zip(link.getSpectrum(), link.getSpectrumHighlighted())]
@@ -666,6 +668,12 @@ class game_gym(gym.Env):
                 self.activeRequests.remove(self.user.getCurrentRequest())
                 self.user.getCurrentRequest().setTimeAllocated(self.timer)
                 availableLinks = self.clearAll()
+            else:
+                self.false_counter += 1
+            
+            if self.false_counter > 5:
+                self.done = True
+                print('Too many invalid actions.')
 
 
         # elif action == 0 or action == 1:
