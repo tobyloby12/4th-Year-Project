@@ -142,11 +142,14 @@ class game_gym(gym.Env):
         #ADDED cumulative reward
         self.reward_sum = 0
 
+        #invalid action counter
+        self.false_counter = 0
+
         #ADDED connection service flag (tracks the number of connections fulfilled)
         self.req_complete = 0
 
         #ADDED number of links in routing
-        self.num_links = 0
+        self.num_3_conn = 0
         
         
         # stores the requests available to the user in a list
@@ -648,7 +651,7 @@ class game_gym(gym.Env):
                 self.requestMode = False
                 self.topologyMode = True
                 #set number of links value to 0 upon initiation of topology mode
-                self.num_links = 0
+                #self.num_links = 0
 
                 #adding score reward for progressing from game mode
                 self.SCORE += 1
@@ -733,7 +736,7 @@ class game_gym(gym.Env):
                 self.reward -= 0.2
 
                 #reducing number of links
-                self.num_links -= 1
+                #self.num_links -= 1
 
 
                 # deselects the link user chose to get to the current node
@@ -872,10 +875,10 @@ class game_gym(gym.Env):
                 #self.reward += 1
 
                 #testing this normalised
-                self.reward -= 5
+                self.reward -= 0.5
 
                 #increasing number of links
-                self.num_links += 1
+                #self.num_links += 1
 
                 # IF the selected link does not move the user to the destination node
                 # THEN the link and node is de-highlighted and set to selected,
@@ -948,8 +951,11 @@ class game_gym(gym.Env):
                     self.topologyMode = False
                     self.spectrumMode = True
 
+                    #setting invalid spectrum allocation variable to 0 upon entering spectrum mode 
+                    self.false_counter += 0
+
                     #adding number of links to be 1 from reset value of 0
-                    self.num_links += 1
+                    #self.num_links += 1
 
                     # need to include selecting first few slots automatically
                     bandwidth = self.user.getCurrentRequest().getBandwidth()
@@ -970,7 +976,7 @@ class game_gym(gym.Env):
                         #print("1 link")                       
                         #print(len(linksSelected))
                         #print(self.num_links)
-                        self.reward += 10
+                        self.reward += 20
                         self.SCORE += 5
 
                     #if route chosen was 2 links, give small negative reward
@@ -979,15 +985,25 @@ class game_gym(gym.Env):
                         #print("2 links")
                         #print(len(linksSelected))
                         #print(self.num_links)
-                        self.reward -= 50
-                        self.SCORE -= 1
+                        self.reward -= 10
+                        self.SCORE += 1
 
                     #if route chosen was greater than or equal to 3 links, give large negative reward
                     elif len(linksSelected) >= 3:
                         #debug print
                         #print("more than 3 links")
-                        self.reward -= 100
+                        self.reward -= 50
                         self.SCORE -= 5
+
+                        self.num_3_conn += 1
+
+                        #Added conditional statement which ends the game if the agent
+                        #makes too many 3 link connections
+                        if self.num_3_conn >= 3:
+                            self.done = True
+                            print("Too many 3 link connections made.")
+                            #bloating the negative rewards
+                            self.reward -= self.num_3_conn * 100
 
 
                     #Experimenting reward function
@@ -1080,7 +1096,7 @@ class game_gym(gym.Env):
             #self.reward -= 1
 
             #testing this normalised
-            self.reward += 1
+            self.reward += 0.5
 
 
         # if right is pressed then the selected should be shifted to the right by 1 unless at the most right where it will jump to left
@@ -1103,7 +1119,7 @@ class game_gym(gym.Env):
             #self.reward -= 1
 
             #testing this normalised
-            self.reward += 1
+            self.reward += 0.5
 
         # if return is pressed, selected links should be checked for if they are valid and if they are they should be selected and links
         # should be updated
@@ -1177,9 +1193,18 @@ class game_gym(gym.Env):
                 #self.reward -= 30
 
                 #testing this normalised
-                self.reward -= 50
+                self.reward -= 10
                 #setting such that score is minused
                 self.SCORE -= 1
+
+                self.false_counter += 1
+                
+                #conditional statement which checks the number of invalid spectrum allocations
+                if self.false_counter > 5:
+                    self.done = True
+                    print("Too many invalid spectrum allocations.")
+                    #bloating negative rewards
+                    self.reward -= self.false_counter * 50
 
         #commented out as they are not used now
         #elif action == 0 or action == 1:
