@@ -9,10 +9,7 @@ from pygame.locals import *
 from gym import spaces
 from stable_baselines3.common.env_checker import check_env
 import numpy as np
-# from stable_baselines.common.vec_env import DummyVecEnv
-# from stable_baselines.deepq.policies import MlpPolicy
-from stable_baselines3 import DQN
-import json
+# from stable_baselines3 import DQN
 import cv2
 import random
 
@@ -114,24 +111,63 @@ class game_gym(gym.Env):
         # self.user.selectRequest(self.requestList[0])
         # setting value to end episode
         self.done = False
-
+        self.possible = 0
         self.false_counter = 0
+        self.index = 0
+        self.spectrumIndex = 0
 
         # creating observation space for gym
-        self.observation_space = spaces.Box(
-            low= 0,
-            high = 255,
-            shape= (256, 256, 3),
-            dtype=np.uint8
-            )
+        # self.observation_space = spaces.Box(
+        #     low= 0,
+        #     high = 255,
+        #     shape= (256, 256, 3),
+        #     dtype=np.uint8
+        #     )
+        
 
-        # self.observation_space = spaces.Dict({
-        #     'gamescreen': self.screenshot,
-        #     'source': self.user.getCurrentRequest().getSourceNode().getID(), 
-        #     'destination': self.user.getCurrentRequest().getDestNode().getID(), 
-        #     'bandwidth': self.user.getCurrentRequest().getBandwidth(), 
-        #     'timeLimit': self.user.getCurrentRequest().timeLimit - (self.user.getCurrentRequest().timeStart - self.timer2)
-        #     })
+        self.observation_space_dict = {
+            'request_bandwidth': spaces.Box(low=1, high=5, shape = (1,), dtype = np.int8),
+            'slot_selected': spaces.Box(low=0, high=4, shape = (1,), dtype = np.int8),
+            'possible': spaces.Box(low=0, high=1, shape = (1,), dtype = np.int8),
+            'false_counter': spaces.Box(low=0, high=6, shape = (1,), dtype = np.int8),
+            'path_length': spaces.Box(low=0, high=4, shape = (1,), dtype = np.int8),
+            'mode': spaces.Box(low=0, high=2, shape = (1,), dtype = np.int8)
+            }
+
+        for i in range(len(self.linkList)):
+            self.observation_space_dict[f'topology_link_a{i}'] = spaces.Box(low=0, high=len(self.linkList), shape = (1,), dtype = np.int8)
+            self.observation_space_dict[f'topology_link_b{i}'] = spaces.Box(low=0, high=len(self.linkList), shape = (1,), dtype = np.int8)
+
+        for i in range(len(self.linkList)):
+            self.observation_space_dict[f'current_path_link_a{i}'] = spaces.Box(low=0, high=5, shape = (1,), dtype = np.int8)
+            self.observation_space_dict[f'current_path_link_b{i}'] = spaces.Box(low=0, high=5, shape = (1,), dtype = np.int8)
+
+        for i in range(len(self.linkList)):
+            self.observation_space_dict[f'link_spectrum_a{i}'] = spaces.Box(low=0, high=1, shape = (1,), dtype = np.int8)
+            self.observation_space_dict[f'link_spectrum_b{i}'] = spaces.Box(low=0, high=1, shape = (1,), dtype = np.int8)
+            self.observation_space_dict[f'link_spectrum_c{i}'] = spaces.Box(low=0, high=1, shape = (1,), dtype = np.int8)
+            self.observation_space_dict[f'link_spectrum_d{i}'] = spaces.Box(low=0, high=1, shape = (1,), dtype = np.int8)
+            self.observation_space_dict[f'link_spectrum_e{i}'] = spaces.Box(low=0, high=1, shape = (1,), dtype = np.int8)
+
+
+        mins = np.array([x.low[0] for x in self.observation_space_dict.values()])
+        maxs = np.array([x.high[0] for x in self.observation_space_dict.values()])
+        
+        self.observation_space = spaces.Box(mins, maxs, dtype=np.int8)
+
+        graph = self.links()
+
+        self.state = {
+            'request_bandwidth': np.ones(shape=(1,), dtype=np.int8),
+            'slot_selected': np.zeros(shape=(1,), dtype=np.int8),
+            'possible': np.zeros(shape=(1,), dtype=np.int8),
+            'false_counter': np.zeros(shape=(1,), dtype=np.int8),
+            'path_length': np.ones(shape=(1,), dtype=np.int8),
+            'mode': np.zeros(shape=(1,), dtype=np.int8),
+            'topology': graph, 
+            'current_path': np.zeros(shape=(5,2), dtype=np.int8),
+            'link_spectrum': np.zeros(shape=(5,5), dtype=np.int8)
+            }
 
         self.info = {}
 
@@ -157,13 +193,15 @@ class game_gym(gym.Env):
         Resets the game to start state
         '''
         self.initialise_values()
-        obs = np.array(pygame.surfarray.array3d(self.DISPLAYSURF.subsurface((210, 0, 560, 600))), dtype=np.uint8)
-        obs = cv2.resize(obs, dsize=(256, 256))
-        print(obs.shape)
+        # obs = np.array(pygame.surfarray.array3d(self.DISPLAYSURF.subsurface((210, 0, 560, 600))), dtype=np.uint8)
+        # obs = cv2.resize(obs, dsize=(256, 256))
+        # print(obs.shape)
+        obs = self.get_obs()
         return obs
 
 
     def step(self, action):
+        # print(self.requestMode)
         # print(action)
         self.reward = 0
         for event in pygame.event.get():
@@ -183,32 +221,60 @@ class game_gym(gym.Env):
                     action = 2
                 # elif event.key == pygame.K_BACKSPACE:
                 #     action = 3
-        if action != 4:
-            # self.reward -= 1
-            if self.requestMode == True:
-                self.request_logic(action)
-            elif self.topologyMode == True:
-                self.topology_logic(action)
-            elif self.spectrumMode == True:
-                self.spectrum_logic(action)
         
-        obs = np.array(pygame.surfarray.array3d(self.DISPLAYSURF.subsurface((210, 0, 560, 600))), dtype=np.uint8)
-        obs = cv2.resize(obs, dsize=(256, 256))
+        if self.requestMode == True:
+            self.request_logic(action)
+            mode = 0
+        elif self.topologyMode == True:
+            self.topology_logic(action)
+            mode = 1
+        elif self.spectrumMode == True:
+            self.spectrum_logic(action)
+            mode = 2
+        
+        # obs = np.array(pygame.surfarray.array3d(self.DISPLAYSURF.subsurface((210, 0, 560, 600))), dtype=np.uint8)
+        # obs = cv2.resize(obs, dsize=(256, 256))
+        if self.user.getCurrentRequest() != None:
+            self.state['request_bandwidth'] = np.array(self.user.getCurrentRequest().getBandwidth())
+            linksSelected = [link for link in self.available_paths[self.index] if type(link) is Link]
+            self.state['current_path'] = np.pad(np.array([[link.getNode1().getID(), link.getNode2().getID()] for link in linksSelected]), 
+            ((0, 5 - len(linksSelected)), (0, 0)), mode='constant')
+            self.state['path_length'] = np.array(len(linksSelected), dtype=np.int8)
+            self.state['link_spectrum'] = np.array([link.getSpectrum() for link in self.linkList])
+            self.state['slot_selected'] = np.array(self.spectrumIndex)
+            self.state['possible'] = np.array(self.possible)
+            self.state['false_counter'] = np.array(self.false_counter, dtype=np.int8)
+            self.state['mode'] = np.array(mode, dtype=np.int8)
+        else:
+            self.state['request_bandwidth'] = np.ones(shape=(1,), dtype=np.int8)
+            self.state['current_path'] = np.zeros(shape=(5,2), dtype=np.int8)
+            self.state['path_length'] = np.ones(shape=(1,), dtype=np.int8)
+            self.state['link_spectrum'] = np.array([link.getSpectrum() for link in self.linkList])
+            self.state['slot_selected'] =np.zeros(shape=(1,), dtype=np.int8)
+            self.state['possible'] = np.array(self.possible)
+            self.state['false_counter'] = np.array([self.false_counter], dtype=np.int8)
+            self.state['mode'] = np.array(mode, dtype=np.int8)
+
+        # if action != 6:    
+        #     print(self.state)
+
         self.cum_reward += self.reward
         if (self.timer < self.requestList[-1].getTimeStart() and self.activeRequests == []) or self.timer == 0:
             self.done = True
             print('Time is up.')
 
-        self.info[self.timer2] = {
-            'display': obs,
-            'user': self.user
-            }
+        # self.info[self.timer2] = {
+        #     'display': obs,
+        #     'user': self.user
+        #     }
 
         if self.done == True:
-            self.reward -= (len(self.requestList) - len([request for request in self.requestList if request.complete == True]))*100/200
+            self.reward = -(len(self.requestList) - len([request for request in self.requestList if request.completed == True]))*1000/200
             # self.reward += (60 - self.timer)*4/200
             self.cum_reward += self.reward
             print(f'Total reward for this episode is {self.cum_reward*200}')
+
+        obs = self.get_obs()
 
         return obs, self.reward*200, self.done, self.info
 
@@ -571,7 +637,7 @@ class game_gym(gym.Env):
             # need to include selecting first few slots automatically
             bandwidth = self.user.getCurrentRequest().getBandwidth()
             linksSelected = [link for link in self.available_paths[self.index] if type(link) is Link]
-            self.reward = (5 - (len(linksSelected)))*20/200
+            self.reward = (5 - (len(linksSelected)))*1000/200
             highlightedSpectrum = [0]*self.NUMBEROFSLOTS
             for i in range(bandwidth):
                 highlightedSpectrum[i] = 1
@@ -633,25 +699,16 @@ class game_gym(gym.Env):
         # if return is pressed, selected links should be checked for if they are valid and if they are they should be selected and links
         # should be updated
         # otherwise an error message should pop up
-        elif action == 2:
-            # check that there are no conflicts
-            linksSelected = [link for link in self.available_paths[self.index] if type(link) is Link]
-            possible = True
-            for link in linksSelected:
-                for i in range(self.NUMBEROFSLOTS):
-                    if link.getSpectrumHighlighted()[i] == 1:
-                        if link.getSpectrum()[i] == 1:
-                            # create error screen
-                            # self.DISPLAYSURF.fill(self.RED)
-                            # pygame.display.update()
-                            # print("error")
-                            possible = False
-                            # self.reward -= 2
-                            self.reward = -0.3
-                            
-            if possible == True:
+        linksSelected = [link for link in self.available_paths[self.index] if type(link) is Link]
+        self.possible = 1
+        for link in linksSelected:
+            for i in range(self.NUMBEROFSLOTS):
+                if link.getSpectrumHighlighted()[i] == 1:
+                    if link.getSpectrum()[i] == 1:
+                        self.possible = 0
+        if action == 2:          
+            if self.possible == 1:
                 self.false_counter = 0
-                # self.reward += 100
                 self.reward = 0.5
                 # self.reward -= (len(self.available_paths[self.index])*5)/200
                 # self.reward += int((self.user.getCurrentRequest().timeLimit \
@@ -669,15 +726,13 @@ class game_gym(gym.Env):
                 self.user.getCurrentRequest().setTimeAllocated(self.timer)
                 availableLinks = self.clearAll()
             else:
+                self.reward = -0.3
                 self.false_counter += 1
             
             if self.false_counter > 5:
                 self.done = True
                 print('Too many invalid actions.')
 
-
-        # elif action == 0 or action == 1:
-        #     self.reward -= 5
 
     def checkAvailable(self):
         '''
@@ -719,6 +774,22 @@ class game_gym(gym.Env):
         self.requestMode = True
         self.topologyMode = False
         self.spectrumMode = False
+
+    def links(self):
+        edges = []
+        for node in self.nodeList:
+            for link in node.getLinks():
+                edges.append((link[1].getNode1().getID(), link[1].getNode2().getID()))
+        edges = set(edges)
+
+        graph = np.zeros(shape=(5,2), dtype=np.int8)
+        for i, link in enumerate(edges):
+            graph[i] = link[0], link[1]
+
+        return graph
+
+    def get_obs(self):
+        return np.concatenate(np.array([x.flatten() for x in self.state.values()], dtype=object))
 
 
     def endGame(self):
@@ -776,7 +847,7 @@ def main():
         # action = 6
         action = 6
         obs, rewards, dones, info = eveon.step(action)
-        # print(action)
+        # print(obs.shape)
         if dones == True:
             # print(eveon.cum_reward)
             # with open('info.json', 'w') as outfile:
@@ -785,27 +856,6 @@ def main():
             eveon.reset()
 
         eveon.render()
-
-# def main():
-#     nodeList, linkList = createTestTopology()
-#     requestList = generateRequests(nodeList, 5)
-
-#     user = User()
-#     eveon = game_gym(nodeList, linkList, requestList, user)
-
-#     # check_env(eveon, warn=True)
-#     # model = DQN(MlpPolicy, eveon, verbose=1)
-#     # model.learn(total_timesteps=1000)
-
-#     obs = eveon.reset()
-#     while True:
-#         action = eveon.get_action()
-#         # action2 = model.predict(obs)
-#         obs, rewards, dones, info = eveon.step(action)
-#         if dones == True:
-#             print(eveon.reward)
-#             eveon.endGame()
-#         eveon.render()
 
 if __name__ == '__main__':
     main()
