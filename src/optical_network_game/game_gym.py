@@ -637,7 +637,7 @@ class game_gym(gym.Env):
             # need to include selecting first few slots automatically
             bandwidth = self.user.getCurrentRequest().getBandwidth()
             linksSelected = [link for link in self.available_paths[self.index] if type(link) is Link]
-            self.reward = (5 - (len(linksSelected)))*1000/200
+            self.reward = (3 - (len(linksSelected)))*1000/200
             highlightedSpectrum = [0]*self.NUMBEROFSLOTS
             for i in range(bandwidth):
                 highlightedSpectrum[i] = 1
