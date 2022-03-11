@@ -1001,8 +1001,8 @@ class game_gym(gym.Env):
                         #makes too many 3 link connections
                         if self.num_3_conn >= 3:
                             #self.done = True
-                            print("Too many 3 link connections made.")
-                            print(self.reward_sum)
+                            #print("Too many 3 link connections made.")
+                            #print(self.reward_sum)
                             #bloating the negative rewards
                             self.reward -= self.num_3_conn * 100
 
@@ -1203,8 +1203,8 @@ class game_gym(gym.Env):
                 #conditional statement which checks the number of invalid spectrum allocations
                 if self.false_counter > 5:
                     #self.done = True
-                    print("Too many invalid spectrum allocations.")
-                    print(self.reward_sum)
+                    #print("Too many invalid spectrum allocations.")
+                    #print(self.reward_sum)
                     #bloating negative rewards
                     self.reward -= self.false_counter * 50
 
