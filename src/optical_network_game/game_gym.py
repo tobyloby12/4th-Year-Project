@@ -1000,7 +1000,7 @@ class game_gym(gym.Env):
                         #Added conditional statement which ends the game if the agent
                         #makes too many 3 link connections
                         if self.num_3_conn >= 3:
-                            self.done = True
+                            #self.done = True
                             print("Too many 3 link connections made.")
                             print(self.reward_sum)
                             #bloating the negative rewards
@@ -1202,7 +1202,7 @@ class game_gym(gym.Env):
                 
                 #conditional statement which checks the number of invalid spectrum allocations
                 if self.false_counter > 5:
-                    self.done = True
+                    #self.done = True
                     print("Too many invalid spectrum allocations.")
                     print(self.reward_sum)
                     #bloating negative rewards
