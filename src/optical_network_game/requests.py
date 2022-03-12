@@ -5,7 +5,7 @@ from optical_network_game.node import *
 # requests consist of source node, destination node, bandwidth, time allocated
 
 class Request:
-    def __init__(self, RequestID, SourceNode, DestNode, BandWidth, timeStart):
+    def __init__(self, RequestID, SourceNode, DestNode, BandWidth, timeStart, hold_time):
         # initialising parameters
         self.requestID = RequestID
         self.sourceNode = SourceNode
@@ -18,6 +18,9 @@ class Request:
         self.completed = False
         self.blocked = False
         self.isSelected = False
+
+        #Adding holding time variable
+        self.hold_time = hold_time
 
     def toString(self):
         return f'''RequestID: {self.requestID}, SourceNode: {self.sourceNode.getName()}, DestNode: {self.destNode.getName()}, 
@@ -58,7 +61,7 @@ class Request:
 
     def setTimeAllocated(self, value):
         self.timeAllocated = value
-        self.timeDeallocated = value - 10
+        self.timeDeallocated = value - self.hold_time
 
     def getTimeDeallocated(self):
         return self.timeDeallocated
@@ -83,10 +86,42 @@ def generateRequests(listOfNodes, numberOfRequests):
         # randomising time start
         timeStart = 60 - i*1
         # creating 
-        request = Request(i, source, destination, bandwidth, timeStart)
+        request = Request(i, source, destination, bandwidth, timeStart, hold_time=10)
         requestsList.append(request)
     return requestsList
 
+#Making new function which can change traffic loads based on holding time and 
+#mean interval of incoming requests
+def generateRequests_Dynamic_Traffic(listOfNodes, numberOfRequests, req_interval, hold_time):
+    '''
+    Added req_interval & Hold_time in function to be albe to make 
+    preset requests with respective traffic load
+    '''
+    random.seed(42)
+    requestsList = []
+
+    #Getting Traffic Load metric
+    traffic_load=hold_time/req_interval
+    print("Traffic load is: " + str(traffic_load))
+
+
+    # creating requests
+    for i in range(numberOfRequests):
+        # random source and destinations
+        source = random.choice(listOfNodes)
+        destination = random.choice(listOfNodes)
+        # makind sure destination and source are not the same
+        while source == destination:
+            destination = random.choice(listOfNodes)
+        # randomising bandwidth
+        bandwidth = random.randint(1, 1)
+        # randomising time start
+        timeStart = 60 - req_interval*1
+        # creating
+        # added hold_time variable for Request Class 
+        request = Request(i, source, destination, bandwidth, timeStart, hold_time=hold_time)
+        requestsList.append(request)
+    return requestsList, traffic_load
 
 def main():
     # test code
