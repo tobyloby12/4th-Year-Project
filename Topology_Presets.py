@@ -19,21 +19,40 @@ BLUE = (0, 0, 255)
 GRAY = (100, 100, 100)
 
 #preset topology function
-def createPresetTopology(Preset_Num):
+def createPresetTopology(Preset):
+    '''
+    Preset = ["Base", "1-link", "VSNL", "NSFnet"]
+    Preset takes in a string arguement which represents the following:
+    Base = Base topology originally used for training with 4 nodes and 5 links
+    1-link = Topology with 4 nodes and 6 links so all nodes are connected with each other
+    VSNL = Topology replicating A1 Node connections within India (referenced), 6 nodes 9 links
+    NSFnet = Topology replicating NSFnet topology for US backbone, 14 nodes 21 links
+    '''
     # Nodes
-    nodeA = Node(0, 'A', 300, 200)
-    nodeB = Node(1, 'B', 300, 400)
-    nodeC = Node(2, 'C', 650, 200)
-    nodeD = Node(3, 'D', 650, 400)
-    nodeE = Node(4, 'E', 500, 200)
-    nodeF = Node(5, 'F', 500, 400)
-    nodeG = Node(6, 'G', 500, 300)
-    nodeH = Node(7, 'H', 200, 300)
-    nodeI = Node(8, 'I', 650, 300)
-    nodeJ = Node(9, 'J', 200, 400)
+    #nodeA = Node(0, 'A', 300, 200)
+    #nodeB = Node(1, 'B', 300, 400)
+    #nodeC = Node(2, 'C', 650, 200)
+    #nodeD = Node(3, 'D', 650, 400)
+    #nodeE = Node(4, 'E', 500, 200)
+    #nodeF = Node(5, 'F', 500, 400)
+    #nodeG = Node(6, 'G', 500, 300)
+    #nodeH = Node(7, 'H', 200, 300)
+    #nodeI = Node(8, 'I', 650, 300)
+    #nodeJ = Node(9, 'J', 200, 400)
+    #nodeK = Node(10, 'K', 200, 400)
+    #nodeL = Node(11, 'L', 200, 400)
+    #nodeM = Node(12, 'M', 200, 400)
+    #nodeN = Node(13, 'N', 200, 400)
+    
 
-    if Preset_Num == 1:
+    if Preset == "Base":
         #Preset 1 (Base Model Used for Link)
+
+        nodeA = Node(0, 'A', 300, 200)
+        nodeB = Node(1, 'B', 300, 400)
+        nodeC = Node(2, 'C', 650, 200)
+        nodeD = Node(3, 'D', 650, 400)
+
 
         link1 = Link(0, nodeA, nodeB)
         link2 = Link(1, nodeB, nodeC)
@@ -47,9 +66,16 @@ def createPresetTopology(Preset_Num):
         # save the links associated to each node in a list
         for node in nodeList:
             node.setLinks(linkList)
+        
+        print("Base Topology Selected")
 
-    elif Preset_Num == 2:
+    elif Preset == "1-link":
         #Preset 2 (Simpler Topology with Links between All nodes)
+        nodeA = Node(0, 'A', 300, 200)
+        nodeB = Node(1, 'B', 300, 400)
+        nodeC = Node(2, 'C', 650, 200)
+        nodeD = Node(3, 'D', 650, 400)
+
 
         link1 = Link(0, nodeA, nodeB)
         link2 = Link(1, nodeB, nodeC)
@@ -64,29 +90,95 @@ def createPresetTopology(Preset_Num):
         # save the links associated to each node in a list
         for node in nodeList:
             node.setLinks(linkList)
+        
+        print("1-link Topology Selected")
 
-    #elif Preset_Num == 3:
+    #elif Preset == 3:
 
 
-    #elif Preset_Num == 4:
+    #elif Preset == 4:
 
-    #elif Preset_Num == 5:
+    elif Preset == "VSNL":
 
-    elif Preset_Num == 6:
+        nodeA = Node(0, 'A', 300, 300)
+        nodeB = Node(1, 'B', 350, 400)
+        nodeC = Node(2, 'C', 350, 200)
+        nodeD = Node(3, 'D', 500, 450)
+        nodeE = Node(4, 'E', 600, 150)
+        nodeF = Node(5, 'F', 650, 350)
+
+        link1 = Link(1, nodeA, nodeB)
+        link2 = Link(2, nodeA, nodeC)
+        link3 = Link(3, nodeA, nodeD)
+        link4 = Link(4, nodeA, nodeE)
+        link5 = Link(5, nodeA, nodeF)
+        link6 = Link(6, nodeB, nodeD)
+        link7 = Link(7, nodeC, nodeD)
+        link8 = Link(8, nodeD, nodeE)
+        link9 = Link(9, nodeD, nodeF)
+
+
+        nodeList = [nodeA, nodeB, nodeC, nodeD, nodeE, nodeF]
+        linkList = [link1, link2, link3, link4, link5, link6, link7, link8, link9]
+
+        # save the links associated to each node in a list
+        for node in nodeList:
+            node.setLinks(linkList)
+
+        print("VSNL Topology Selected")
+
+
+    elif Preset == "NSFnet":
         #Preset 6 (Most complex Topology with all 10 nodes and various links)
         #Links
 
+        #node labelling based off of the Green optical networks with availability figure in the report
+        node0 = Node(0, 'A', 100, 250)
+        node1 = Node(1, 'B', 150, 400)
+        node2 = Node(2, 'C', 150, 100)
+        node3 = Node(3, 'D', 250, 250)
+        node4 = Node(4, 'E', 300, 200)
+        node5 = Node(5, 'F', 300, 100)
+        node6 = Node(6, 'G', 350, 300)
+        node7 = Node(7, 'H', 400, 200)
+        node8 = Node(8, 'I', 500, 200)
+        node9 = Node(9, 'J', 450, 100)
+        node10 = Node(10, 'K', 500, 400)
+        node11 = Node(11, 'L', 600, 350)
+        node12 = Node(12, 'M', 550, 100)
+        node13 = Node(13, 'N', 650, 300)
 
-        nodeList = [nodeA, nodeB, nodeC, nodeD, nodeE, nodeF, nodeG, nodeH, nodeI, nodeJ]
-        linkList = []
+        link1 = Link(1, node0, node1)
+        link2 = Link(2, node0, node2)
+        link3 = Link(3, node0, node3)
+        link4 = Link(4, node1, node2)
+        link5 = Link(5, node1, node7)
+        link6 = Link(6, node2, node5)
+        link7 = Link(7, node3, node4)
+        link8 = Link(8, node3, node10)
+        link9 = Link(9, node4, node5)
+        link10 = Link(10, node4, node6)
+        link11 = Link(11, node5, node9)
+        link12 = Link(12, node5, node12)
+        link13 = Link(13, node6, node7)
+        link14 = Link(14, node7, node8)
+        link15 = Link(15, node8, node9)
+        link16 = Link(16, node8, node11)
+        link17 = Link(17, node8, node13)
+        link18 = Link(18, node10, node11)
+        link19 = Link(19, node10, node13)
+        link20 = Link(20, node11, node12)
+        link21 = Link(21, node12, node13)
+        
+
+        nodeList = [node0, node1, node2, node3, node4, node5, node6, node7, node8, node9, node10, node11, node12, node13]
+        linkList = [link1, link2, link3, link4, link5, link6, link7, link8, link9, link10, link11, link12, link13, link14, link15, link16, link17, link18, link19, link20, link21]
        
         # save the links associated to each node in a list
         for node in nodeList:
             node.setLinks(linkList)
 
-
-
-    
+        print("NSFnet Topology Selected")
 
     return nodeList, linkList
 
