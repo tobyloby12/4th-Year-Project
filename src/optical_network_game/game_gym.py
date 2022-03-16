@@ -85,6 +85,12 @@ class game_gym(gym.Env):
         # initialize pygame
         pygame.init()
 
+        #Obtaining Performance Metrics
+        #number of requests in the game
+        self.total_req_num = len(self.requestList)
+        #cumulative variable storing number of links made per connection req
+        self.linksmade_cum = 0
+
         # timer
         self.timer_event = pygame.USEREVENT+1
         # repeatedly create an event on the event queue every 1000ms / 1s
@@ -263,6 +269,9 @@ class game_gym(gym.Env):
             self.done = True
             print('Time is up.')
 
+            #avg links selected debug printout
+            print("Average links per route: " + str(self.linksmade_cum/self.total_req_num))
+
         # self.info[self.timer2] = {
         #     'display': obs,
         #     'user': self.user
@@ -273,6 +282,9 @@ class game_gym(gym.Env):
             # self.reward += (60 - self.timer)*4/200
             self.cum_reward += self.reward
             print(f'Total reward for this episode is {self.cum_reward*200}')
+
+            #avg links selected debug printout
+            print("Average links per route: " + str(self.linksmade_cum/self.total_req_num))
 
         obs = self.get_obs()
 
@@ -634,6 +646,13 @@ class game_gym(gym.Env):
             self.topologyMode = False
             self.spectrumMode = True
 
+            
+            #adding the number of links made
+            self.linksmade_cum += len(linksSelected)
+            #debug print
+            print("Total number of links made in episode: " + str(self.linksmade_cum))
+
+
             # need to include selecting first few slots automatically
             bandwidth = self.user.getCurrentRequest().getBandwidth()
             linksSelected = [link for link in self.available_paths[self.index] if type(link) is Link]
@@ -732,6 +751,9 @@ class game_gym(gym.Env):
             if self.false_counter > 5:
                 self.done = True
                 print('Too many invalid actions.')
+
+                #avg links selected debug printout
+                print("Average links per route: " + str(self.linksmade_cum/self.total_req_num))
 
 
     def checkAvailable(self):
