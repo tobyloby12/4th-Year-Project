@@ -11,10 +11,10 @@ class Request:
         self.sourceNode = SourceNode
         self.destNode = DestNode
         self.bandWidth = BandWidth
-        self.timeLimit = 60
+        self.timeLimit = 5
         self.timeStart = timeStart
         self.timeAllocated = 0
-        self.timeDeallocated = self.timeAllocated - 10
+        self.timeDeallocated = 0
         self.completed = False
         self.blocked = False
         self.isSelected = False
@@ -79,7 +79,7 @@ def generateRequests(listOfNodes, numberOfRequests):
         while source == destination:
             destination = random.choice(listOfNodes)
         # randomising bandwidth
-        bandwidth = random.randint(1, 1)
+        bandwidth = random.randint(1, 2)
         # randomising time start
         timeStart = 60 - i*1
         # creating 

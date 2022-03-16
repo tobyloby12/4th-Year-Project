@@ -82,6 +82,10 @@ class game_gym(gym.Env):
         self.current_path = None
         self.available_paths = None
 
+        # resetting completed in requests
+        for request in self.requestList:
+            request.completed = False
+
         # initialize pygame
         pygame.init()
 
@@ -139,8 +143,7 @@ class game_gym(gym.Env):
             self.observation_space_dict[f'topology_link_b{i}'] = spaces.Box(low=0, high=len(self.linkList), shape = (1,), dtype = np.int8)
 
         for i in range(len(self.linkList)):
-            self.observation_space_dict[f'current_path_link_a{i}'] = spaces.Box(low=0, high=5, shape = (1,), dtype = np.int8)
-            self.observation_space_dict[f'current_path_link_b{i}'] = spaces.Box(low=0, high=5, shape = (1,), dtype = np.int8)
+            self.observation_space_dict[f'current_path_link{i}'] = spaces.Box(low=0, high=1, shape = (1,), dtype = np.int8)
 
         for i in range(len(self.linkList)):
             self.observation_space_dict[f'link_spectrum_a{i}'] = spaces.Box(low=0, high=1, shape = (1,), dtype = np.int8)
@@ -165,7 +168,7 @@ class game_gym(gym.Env):
             'path_length': np.ones(shape=(1,), dtype=np.int8),
             'mode': np.zeros(shape=(1,), dtype=np.int8),
             'topology': graph, 
-            'current_path': np.zeros(shape=(5,2), dtype=np.int8),
+            'current_path': np.zeros(shape=(5,), dtype=np.int8),
             'link_spectrum': np.zeros(shape=(5,5), dtype=np.int8)
             }
 
@@ -237,8 +240,13 @@ class game_gym(gym.Env):
         if self.user.getCurrentRequest() != None:
             self.state['request_bandwidth'] = np.array(self.user.getCurrentRequest().getBandwidth())
             linksSelected = [link for link in self.available_paths[self.index] if type(link) is Link]
-            self.state['current_path'] = np.pad(np.array([[link.getNode1().getID(), link.getNode2().getID()] for link in linksSelected]), 
-            ((0, 5 - len(linksSelected)), (0, 0)), mode='constant')
+            # self.state['current_path'] = np.pad(np.array([[link.getNode1().getID(), link.getNode2().getID()] for link in linksSelected]), 
+            # ((0, 5 - len(linksSelected)), (0, 0)), mode='constant')
+            path_IDs = [[link.getID()] for link in linksSelected]
+            current_path = np.zeros(shape=(5,), dtype=np.int8)
+            for ID in path_IDs:
+                current_path[ID] = 1
+            self.state['current_path'] = current_path
             self.state['path_length'] = np.array(len(linksSelected), dtype=np.int8)
             self.state['link_spectrum'] = np.array([link.getSpectrum() for link in self.linkList])
             self.state['slot_selected'] = np.array(self.spectrumIndex)
@@ -247,7 +255,7 @@ class game_gym(gym.Env):
             self.state['mode'] = np.array(mode, dtype=np.int8)
         else:
             self.state['request_bandwidth'] = np.ones(shape=(1,), dtype=np.int8)
-            self.state['current_path'] = np.zeros(shape=(5,2), dtype=np.int8)
+            self.state['current_path'] = np.zeros(shape=(5,), dtype=np.int8)
             self.state['path_length'] = np.ones(shape=(1,), dtype=np.int8)
             self.state['link_spectrum'] = np.array([link.getSpectrum() for link in self.linkList])
             self.state['slot_selected'] =np.zeros(shape=(1,), dtype=np.int8)
@@ -262,19 +270,18 @@ class game_gym(gym.Env):
         if (self.timer < self.requestList[-1].getTimeStart() and self.activeRequests == []) or self.timer == 0:
             self.done = True
             print('Time is up.')
-
-        # self.info[self.timer2] = {
-        #     'display': obs,
-        #     'user': self.user
-        #     }
+        
 
         if self.done == True:
             self.reward = -(len(self.requestList) - len([request for request in self.requestList if request.completed == True]))*1000/200
-            # self.reward += (60 - self.timer)*4/200
+            blocking_ratio = len([request for request in self.requestList if request.completed == True])/len(self.requestList)
+            self.info['bp'] = blocking_ratio
+            print(blocking_ratio)
             self.cum_reward += self.reward
             print(f'Total reward for this episode is {self.cum_reward*200}')
 
         obs = self.get_obs()
+
 
         return obs, self.reward*200, self.done, self.info
 
@@ -482,7 +489,7 @@ class game_gym(gym.Env):
                 request.setBlock(True)
                 self.SCORE -= 1
                 # self.reward -=200
-                # self.reward = -1
+                self.reward = -50
                 try:
                     self.activeRequests.remove(request)
                 except:
@@ -711,8 +718,8 @@ class game_gym(gym.Env):
                 self.false_counter = 0
                 self.reward = 0.5
                 # self.reward -= (len(self.available_paths[self.index])*5)/200
-                # self.reward += int((self.user.getCurrentRequest().timeLimit \
-                # - (self.user.getCurrentRequest().timeStart - self.timer2))*2)/200
+                self.reward += int((self.user.getCurrentRequest().timeLimit \
+                - (self.user.getCurrentRequest().timeStart - self.timer2))*200)/200
                 self.completions.append((self.user.getCurrentRequest(), linksSelected.copy(), link.getSpectrumHighlighted().copy()))
                 for link in linksSelected:
                     newSelected = [sum(x) for x in zip(link.getSpectrum(), link.getSpectrumHighlighted())]
