@@ -18,8 +18,6 @@ GREEN = (0, 255, 0)
 BLUE = (0, 0, 255)
 GRAY = (100, 100, 100)
 
-
-
 #preset topology function
 def createPresetTopology(Preset):
     '''
@@ -185,36 +183,6 @@ def createPresetTopology(Preset):
     return nodeList, linkList
 
 
-
-
-
-
-
-
-
-
-def createTestTopology():
-    # testNodes
-    nodeA = Node(0, 'A', 300, 200)
-    nodeB = Node(1, 'B', 300, 400)
-    nodeC = Node(2, 'C', 650, 200)
-    nodeD = Node(3, 'D', 650, 400)
-    # testLinks
-    link1 = Link(0, nodeA, nodeB)
-    link2 = Link(1, nodeB, nodeC)
-    link3 = Link(2, nodeB, nodeD)
-    link4 = Link(3, nodeA, nodeC)
-    link5 = Link(4, nodeC, nodeD)
-
-    nodeList = [nodeA, nodeB, nodeC, nodeD]
-    linkList = [link1, link2, link3, link4, link5]
-
-    # save the links associated to each node in a list
-    for node in nodeList:
-        node.setLinks(linkList)
-    return nodeList, linkList
-
-
 def generatingNodes(numberOfNodes):
     nodeList = []
     temp = numberOfNodes
@@ -301,4 +269,3 @@ while running:
     pygame.display.flip()
 
 pygame.quit()
-
