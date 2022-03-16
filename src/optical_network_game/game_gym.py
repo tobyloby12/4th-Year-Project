@@ -279,6 +279,7 @@ class game_gym(gym.Env):
         
 
         if self.done == True:
+            
             self.reward = -(len(self.requestList) - len([request for request in self.requestList if request.completed == True]))*1000/200
             blocking_ratio = len([request for request in self.requestList if request.completed == True])/len(self.requestList)
             self.info['bp'] = blocking_ratio
@@ -640,7 +641,11 @@ class game_gym(gym.Env):
         elif action == 2:
             # self.reward = (5+max([len(path_length) for path_length in self.available_paths]) - \
             #     (len(self.available_paths[self.index])))*20/200
-        
+                    #adding the number of links made
+            self.linksmade_cum += len(linksSelected)
+            #debug print
+            print("Total number of links made in episode: " + str(self.linksmade_cum))
+
             for item in self.available_paths[self.index]:
                 item.setHighlighted(False)
             
@@ -755,6 +760,7 @@ class game_gym(gym.Env):
             if self.false_counter > 5:
                 self.done = True
                 print('Too many invalid actions.')
+                
 
                 #avg links selected debug printout
                 print("Average links per route: " + str(self.linksmade_cum/self.total_req_num))
