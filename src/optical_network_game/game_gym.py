@@ -64,6 +64,10 @@ class game_gym(gym.Env):
         self.requestList = requestList
         self.user = user
 
+        #Adding variable which is the number of links and nodes in the topology used 
+        self.num_nodes = len(nodeList)
+        self.num_links = len(linkList)
+
         self.action_space = spaces.Discrete(3)
         
         self.initialise_values()
@@ -90,6 +94,7 @@ class game_gym(gym.Env):
         self.total_req_num = len(self.requestList)
         #cumulative variable storing number of links made per connection req
         self.linksmade_cum = 0
+
 
         # timer
         self.timer_event = pygame.USEREVENT+1
@@ -140,6 +145,8 @@ class game_gym(gym.Env):
             'mode': spaces.Box(low=0, high=2, shape = (1,), dtype = np.int8)
             }
 
+
+        #i think this might be the line which is throwing the error for the observation space because len(self.linkList) changes depending on the topology
         for i in range(len(self.linkList)):
             self.observation_space_dict[f'topology_link_a{i}'] = spaces.Box(low=0, high=len(self.linkList), shape = (1,), dtype = np.int8)
             self.observation_space_dict[f'topology_link_b{i}'] = spaces.Box(low=0, high=len(self.linkList), shape = (1,), dtype = np.int8)
@@ -646,12 +653,6 @@ class game_gym(gym.Env):
             self.topologyMode = False
             self.spectrumMode = True
 
-            
-            #adding the number of links made
-            self.linksmade_cum += len(linksSelected)
-            #debug print
-            print("Total number of links made in episode: " + str(self.linksmade_cum))
-
 
             # need to include selecting first few slots automatically
             bandwidth = self.user.getCurrentRequest().getBandwidth()
@@ -663,6 +664,12 @@ class game_gym(gym.Env):
             for link in linksSelected:
                 link.setSpectrumHighlighted(highlightedSpectrum)
             self.spectrumIndex = 0
+
+            #adding the number of links made
+            self.linksmade_cum += len(linksSelected)
+            #debug print
+            print("Total number of links made in episode: " + str(self.linksmade_cum))
+
             
 
 
@@ -804,7 +811,9 @@ class game_gym(gym.Env):
                 edges.append((link[1].getNode1().getID(), link[1].getNode2().getID()))
         edges = set(edges)
 
-        graph = np.zeros(shape=(5,2), dtype=np.int8)
+        #need to change the x axis shape into a variable which is based on the number of links
+        #graph = np.zeros(shape=(5,2), dtype=np.int8)
+        graph = np.zeros(shape=(len(self.linkList),2), dtype=np.int8)
         for i, link in enumerate(edges):
             graph[i] = link[0], link[1]
 
