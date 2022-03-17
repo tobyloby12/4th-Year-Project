@@ -46,6 +46,7 @@ def createPresetTopology(Preset):
     #nodeM = Node(12, 'M', 200, 400)
     #nodeN = Node(13, 'N', 200, 400)
     
+    num_slots = 4
 
     if Preset == "Base":
         #Preset 1 (Base Model Used for Link)
@@ -56,11 +57,11 @@ def createPresetTopology(Preset):
         nodeD = Node(3, 'D', 650, 400)
 
 
-        link1 = Link(0, nodeA, nodeB)
-        link2 = Link(1, nodeB, nodeC)
-        link3 = Link(2, nodeB, nodeD)
-        link4 = Link(3, nodeA, nodeC)
-        link5 = Link(4, nodeC, nodeD)
+        link1 = Link(0, nodeA, nodeB, num_slots)
+        link2 = Link(1, nodeB, nodeC, num_slots)
+        link3 = Link(2, nodeB, nodeD, num_slots)
+        link4 = Link(3, nodeA, nodeC, num_slots)
+        link5 = Link(4, nodeC, nodeD, num_slots)
 
         nodeList = [nodeA, nodeB, nodeC, nodeD]
         linkList = [link1, link2, link3, link4, link5]
@@ -75,16 +76,16 @@ def createPresetTopology(Preset):
         #Preset 2 (Simpler Topology with Links between All nodes)
         nodeA = Node(0, 'A', 300, 200)
         nodeB = Node(1, 'B', 300, 400)
-        nodeC = Node(2, 'C', 650, 200)
-        nodeD = Node(3, 'D', 650, 400)
+        nodeC = Node(2, 'C', 650, 100)
+        nodeD = Node(3, 'D', 650, 500)
 
 
-        link1 = Link(0, nodeA, nodeB)
-        link2 = Link(1, nodeB, nodeC)
-        link3 = Link(2, nodeB, nodeD)
-        link4 = Link(3, nodeA, nodeC)
-        link5 = Link(4, nodeC, nodeD)
-        link6 = Link(5, nodeA, nodeD)
+        link1 = Link(0, nodeA, nodeB, num_slots)
+        link2 = Link(1, nodeB, nodeC, num_slots)
+        link3 = Link(2, nodeB, nodeD, num_slots)
+        link4 = Link(3, nodeA, nodeC, num_slots)
+        link5 = Link(4, nodeC, nodeD, num_slots)
+        link6 = Link(5, nodeA, nodeD, num_slots)
 
         nodeList = [nodeA, nodeB, nodeC, nodeD]
         linkList = [link1, link2, link3, link4, link5, link6]
@@ -103,21 +104,21 @@ def createPresetTopology(Preset):
     elif Preset == "VSNL":
 
         nodeA = Node(0, 'A', 300, 300)
-        nodeB = Node(1, 'B', 350, 400)
-        nodeC = Node(2, 'C', 350, 200)
-        nodeD = Node(3, 'D', 500, 450)
+        nodeB = Node(1, 'B', 350, 475)
+        nodeC = Node(2, 'C', 400, 100)
+        nodeD = Node(3, 'D', 600, 525)
         nodeE = Node(4, 'E', 600, 150)
-        nodeF = Node(5, 'F', 650, 350)
+        nodeF = Node(5, 'F', 750, 250)
 
-        link1 = Link(1, nodeA, nodeB)
-        link2 = Link(2, nodeA, nodeC)
-        link3 = Link(3, nodeA, nodeD)
-        link4 = Link(4, nodeA, nodeE)
-        link5 = Link(5, nodeA, nodeF)
-        link6 = Link(6, nodeB, nodeD)
-        link7 = Link(7, nodeC, nodeD)
-        link8 = Link(8, nodeD, nodeE)
-        link9 = Link(9, nodeD, nodeF)
+        link1 = Link(1, nodeA, nodeB, num_slots)
+        link2 = Link(2, nodeA, nodeC, num_slots)
+        link3 = Link(3, nodeA, nodeD, num_slots)
+        link4 = Link(4, nodeA, nodeE, num_slots)
+        link5 = Link(5, nodeA, nodeF, num_slots)
+        link6 = Link(6, nodeB, nodeD, num_slots)
+        link7 = Link(7, nodeC, nodeD, num_slots)
+        link8 = Link(8, nodeD, nodeE, num_slots)
+        link9 = Link(9, nodeD, nodeF, num_slots)
 
 
         nodeList = [nodeA, nodeB, nodeC, nodeD, nodeE, nodeF]
@@ -150,27 +151,27 @@ def createPresetTopology(Preset):
         node12 = Node(12, 'M', 550, 100)
         node13 = Node(13, 'N', 650, 300)
 
-        link1 = Link(1, node0, node1)
-        link2 = Link(2, node0, node2)
-        link3 = Link(3, node0, node3)
-        link4 = Link(4, node1, node2)
-        link5 = Link(5, node1, node7)
-        link6 = Link(6, node2, node5)
-        link7 = Link(7, node3, node4)
-        link8 = Link(8, node3, node10)
-        link9 = Link(9, node4, node5)
-        link10 = Link(10, node4, node6)
-        link11 = Link(11, node5, node9)
-        link12 = Link(12, node5, node12)
-        link13 = Link(13, node6, node7)
-        link14 = Link(14, node7, node8)
-        link15 = Link(15, node8, node9)
-        link16 = Link(16, node8, node11)
-        link17 = Link(17, node8, node13)
-        link18 = Link(18, node10, node11)
-        link19 = Link(19, node10, node13)
-        link20 = Link(20, node11, node12)
-        link21 = Link(21, node12, node13)
+        link1 = Link(1, node0, node1, num_slots)
+        link2 = Link(2, node0, node2, num_slots)
+        link3 = Link(3, node0, node3, num_slots)
+        link4 = Link(4, node1, node2, num_slots)
+        link5 = Link(5, node1, node7, num_slots)
+        link6 = Link(6, node2, node5, num_slots)
+        link7 = Link(7, node3, node4, num_slots)
+        link8 = Link(8, node3, node10, num_slots)
+        link9 = Link(9, node4, node5, num_slots)
+        link10 = Link(10, node4, node6, num_slots)
+        link11 = Link(11, node5, node9, num_slots)
+        link12 = Link(12, node5, node12, num_slots)
+        link13 = Link(13, node6, node7, num_slots)
+        link14 = Link(14, node7, node8, num_slots)
+        link15 = Link(15, node8, node9, num_slots)
+        link16 = Link(16, node8, node11, num_slots)
+        link17 = Link(17, node8, node13, num_slots)
+        link18 = Link(18, node10, node11, num_slots)
+        link19 = Link(19, node10, node13, num_slots)
+        link20 = Link(20, node11, node12, num_slots)
+        link21 = Link(21, node12, node13, num_slots)
         
 
         nodeList = [node0, node1, node2, node3, node4, node5, node6, node7, node8, node9, node10, node11, node12, node13]
@@ -194,17 +195,20 @@ def createPresetTopology(Preset):
 
 
 def createTestTopology():
+    
+    num_slots = 4
+    
     # testNodes
     nodeA = Node(0, 'A', 300, 200)
     nodeB = Node(1, 'B', 300, 400)
     nodeC = Node(2, 'C', 650, 200)
     nodeD = Node(3, 'D', 650, 400)
     # testLinks
-    link1 = Link(0, nodeA, nodeB)
-    link2 = Link(1, nodeB, nodeC)
-    link3 = Link(2, nodeB, nodeD)
-    link4 = Link(3, nodeA, nodeC)
-    link5 = Link(4, nodeC, nodeD)
+    link1 = Link(0, nodeA, nodeB, num_slots)
+    link2 = Link(1, nodeB, nodeC, num_slots)
+    link3 = Link(2, nodeB, nodeD, num_slots)
+    link4 = Link(3, nodeA, nodeC, num_slots)
+    link5 = Link(4, nodeC, nodeD, num_slots)
 
     nodeList = [nodeA, nodeB, nodeC, nodeD]
     linkList = [link1, link2, link3, link4, link5]
@@ -269,36 +273,36 @@ def topology(nodeList):
 
 
 ## initialize pygame and create window
-pygame.init()
-pygame.mixer.init()  ## For sound
-screen = pygame.display.set_mode((WIDTH, HEIGHT))
-pygame.display.set_caption("Topology")
-clock = pygame.time.Clock()     ## For syncing the FPS
+#pygame.init()
+#pygame.mixer.init()  ## For sound
+#screen = pygame.display.set_mode((WIDTH, HEIGHT))
+#pygame.display.set_caption("Topology")
+#clock = pygame.time.Clock()     ## For syncing the FPS
 
-nodeList = generatingNodes(8)
-linkList = generateLinks(3, nodeList)
+#nodeList = generatingNodes(8)
+#linkList = generateLinks(3, nodeList)
 
 ## Game loop
-running = True
-while running:
+#running = True
+#while running:
+#
+#    clock.tick(FPS) 
+#    for event in pygame.event.get():
+#        
+#        if event.type == pygame.QUIT:
+#            running = False
+#
+#
+#    #3 Draw/render
+#    screen.fill(GRAY)
+#    for link in linkList:
+#        link.drawLink(screen, BLUE)
+#    for node in nodeList:
+#        node.drawNode(screen, BLUE)
+#    
+#
+#
+#    pygame.display.flip()
 
-    clock.tick(FPS) 
-    for event in pygame.event.get():
-        
-        if event.type == pygame.QUIT:
-            running = False
-
-
-    #3 Draw/render
-    screen.fill(GRAY)
-    for link in linkList:
-        link.drawLink(screen, BLUE)
-    for node in nodeList:
-        node.drawNode(screen, BLUE)
-    
-
-
-    pygame.display.flip()
-
-pygame.quit()
+#pygame.quit()
 
