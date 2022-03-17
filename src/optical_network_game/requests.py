@@ -89,11 +89,13 @@ def generateRequests(listOfNodes, numberOfRequests, req_interval, hold_time):
         # random source and destinations
         source = random.choice(listOfNodes)
         destination = random.choice(listOfNodes)
+        # source = listOfNodes[0]
+        # destination = listOfNodes[2]
         # makind sure destination and source are not the same
         while source == destination:
             destination = random.choice(listOfNodes)
         # randomising bandwidth
-        bandwidth = random.randint(1, 2)
+        bandwidth = random.randint(1, 1)
         # randomising time start
         timeStart = 60 - i*req_interval
         # creating 

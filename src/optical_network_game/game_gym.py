@@ -490,6 +490,11 @@ class game_gym(gym.Env):
             # THEN the request is considered blocked and score decreases. Request is also de-activated
             if self.timer == request.timeStart - request.timeLimit + 1:
                 request.setBlock(True)
+                continuous, contiguous = self.typeBlock(request)
+                if contiguous == True and continuous == False:
+                    print('Lack of continuous slots')
+                elif contiguous == False:
+                    print('Lack of contiguous slots')
                 self.SCORE -= 1
                 # self.reward -=200
                 self.reward = -50
@@ -811,6 +816,62 @@ class game_gym(gym.Env):
     def get_obs(self):
         return np.concatenate(np.array([x.flatten() for x in self.state.values()], dtype=object))
 
+    def typeBlock(self, request):
+        state = self.state
+        continuous = False
+        contiguous = False
+        # check contiguous
+        for path in self.available_paths:
+            inter_contiguous = True
+            links = [link for link in path if type(link) is Link]
+            for link in links:
+                max_contiguous = 0
+                for i in range(self.numSlots):
+                    num_contiguous_slots = 0
+                    if link.getSpectrum()[i] == 0:
+                        num_contiguous_slots += 1
+                    else:
+                        num_contiguous_slots = 0
+
+                    if max_contiguous <= num_contiguous_slots:
+                        max_contiguous = num_contiguous_slots
+
+                if max_contiguous < request.getBandwidth():
+                    inter_contiguous = False
+                        
+            if inter_contiguous == True:
+                contiguous = True
+
+
+########
+        # check continuous
+        if contiguous == True:
+            # finding which paths have enough spectrum and eliminating impossible paths
+            non_blocked = []
+            bandwidth = request.getBandwidth()
+            # checking each path
+            possible = False
+            for available_path in self.available_paths:
+                # checking all possible places where consecutive free could be
+                for i in range(self.numSlots - bandwidth + 1):
+                    possible = True
+                    # checking through each cell in the bandwidth capacity
+                    for j in range(bandwidth):
+                        links = [link for link in available_path if type(link) is Link]
+                        spectrum_together = [link.getSpectrum() for link in links]
+                        for spectrum in spectrum_together:
+                            if spectrum[i+j] != 0:
+                                possible = False
+                    # appending to new list which contains paths unobstructed
+                    if possible == True:
+                        non_blocked.append(available_path)
+
+            if non_blocked == []:
+                continuous = False
+            else:
+                continuous = True
+        return continuous, contiguous
+
 
     def endGame(self):
         '''
@@ -835,7 +896,7 @@ def createTestTopology():
     nodeD = Node(3, 'D', 650, 400)
     nodeE = Node(4, 'E', 400, 100)
     # testLinks
-    num_slots = 6
+    num_slots = 4
     link1 = Link(0, nodeA, nodeB, num_slots)
     link2 = Link(1, nodeB, nodeC, num_slots)
     link3 = Link(2, nodeB, nodeD, num_slots)
@@ -845,6 +906,8 @@ def createTestTopology():
 
     nodeList = [nodeA, nodeB, nodeC, nodeD, nodeE]
     linkList = [link1, link2, link3, link4, link5, link6]
+    # nodeList = [nodeA, nodeB, nodeC]
+    # linkList = [link1, link2]
 
     # save the links associated to each node in a list
     for node in nodeList:
