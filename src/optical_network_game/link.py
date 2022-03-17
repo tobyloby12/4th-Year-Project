@@ -9,22 +9,21 @@ GRAY = (100, 100, 100)
 RED = (255, 0, 0)
 ORANGE = (255, 128, 0)
 GREEN = (0, 255, 0)
-NUMBEROFSLOTS = 5
 SPECTRUMBOXHEIGHT = 30
 SPECTRUMBOXWIDTH = 150
 
 class Link:
-    def __init__(self, linkID, node1, node2):
+    def __init__(self, linkID, node1, node2, num_slots):
         self.linkID = linkID
         self.node1 = node1
         self.node2 = node2
         self.name = node1.getName() + node2.getName()
-        self.spectrum = [0]*NUMBEROFSLOTS
+        self.spectrum = [0]*num_slots
         self.isHighlighted = False
         self.isSelected = False
         self.xpos = (node1.getX() + node2.getX())/2
         self.ypos = (node1.getY() + node2.getY())/2
-        self.spectrumHighlighted = [0]*NUMBEROFSLOTS
+        self.spectrumHighlighted = [0]*num_slots
 
     def getName(self):
         return self.name
@@ -81,8 +80,8 @@ class Link:
         if self.isSelected == True:
             pygame.draw.rect(display, HIGHLIGHTGREEN, spectrumBox, 10)
         pygame.draw.rect(display, BLACK, spectrumBox, 4)
-        slotWidth = SPECTRUMBOXWIDTH/NUMBEROFSLOTS
-        for i in range(NUMBEROFSLOTS):
+        slotWidth = SPECTRUMBOXWIDTH/len(self.spectrum)
+        for i in range(len(self.spectrum)):
             if self.spectrum[i] == 0:
                 color = GRAY
             else:

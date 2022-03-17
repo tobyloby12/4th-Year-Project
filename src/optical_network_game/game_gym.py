@@ -34,7 +34,6 @@ class game_gym(gym.Env):
     REQUESTHEIGHT = 40
     # set height of timer bar for individual requests
     TIMERBARHEIGHT = 15
-    NUMBEROFSLOTS = 5
     SPECTRUMBOXHEIGHT = 30
     SPECTRUMBOXWIDTH = 120
 
@@ -61,6 +60,7 @@ class game_gym(gym.Env):
         
         self.nodeList = nodeList
         self.linkList = linkList
+        self.numSlots = len(self.linkList[0].spectrum)
         self.requestList = requestList
         self.user = user
 
@@ -89,9 +89,6 @@ class game_gym(gym.Env):
         # initialize pygame
         pygame.init()
 
-        #Obtaining Performance Metrics
-        #number of requests in the game
-        self.total_req_num = len(self.requestList)
         #cumulative variable storing number of links made per connection req
         self.linksmade_cum = 0
 
@@ -136,11 +133,11 @@ class game_gym(gym.Env):
         
 
         self.observation_space_dict = {
-            'request_bandwidth': spaces.Box(low=1, high=5, shape = (1,), dtype = np.int8),
-            'slot_selected': spaces.Box(low=0, high=4, shape = (1,), dtype = np.int8),
+            'request_bandwidth': spaces.Box(low=1, high=self.numSlots, shape = (1,), dtype = np.int8),
+            'slot_selected': spaces.Box(low=0, high=self.numSlots, shape = (1,), dtype = np.int8),
             'possible': spaces.Box(low=0, high=1, shape = (1,), dtype = np.int8),
             'false_counter': spaces.Box(low=0, high=6, shape = (1,), dtype = np.int8),
-            'path_length': spaces.Box(low=0, high=4, shape = (1,), dtype = np.int8),
+            'path_length': spaces.Box(low=0, high=len(self.linkList), shape = (1,), dtype = np.int8),
             'mode': spaces.Box(low=0, high=2, shape = (1,), dtype = np.int8)
             }
 
@@ -152,11 +149,8 @@ class game_gym(gym.Env):
             self.observation_space_dict[f'current_path_link{i}'] = spaces.Box(low=0, high=1, shape = (1,), dtype = np.int8)
 
         for i in range(len(self.linkList)):
-            self.observation_space_dict[f'link_spectrum_a{i}'] = spaces.Box(low=0, high=1, shape = (1,), dtype = np.int8)
-            self.observation_space_dict[f'link_spectrum_b{i}'] = spaces.Box(low=0, high=1, shape = (1,), dtype = np.int8)
-            self.observation_space_dict[f'link_spectrum_c{i}'] = spaces.Box(low=0, high=1, shape = (1,), dtype = np.int8)
-            self.observation_space_dict[f'link_spectrum_d{i}'] = spaces.Box(low=0, high=1, shape = (1,), dtype = np.int8)
-            self.observation_space_dict[f'link_spectrum_e{i}'] = spaces.Box(low=0, high=1, shape = (1,), dtype = np.int8)
+            for j in range(self.numSlots):
+                self.observation_space_dict[f'link_spectrum_{j}_{i}'] = spaces.Box(low=0, high=1, shape = (1,), dtype = np.int8)
 
 
         mins = np.array([x.low[0] for x in self.observation_space_dict.values()])
@@ -174,16 +168,15 @@ class game_gym(gym.Env):
             'path_length': np.ones(shape=(1,), dtype=np.int8),
             'mode': np.zeros(shape=(1,), dtype=np.int8),
             'topology': graph, 
-            'current_path': np.zeros(shape=(5,), dtype=np.int8),
-            'link_spectrum': np.zeros(shape=(5,5), dtype=np.int8)
+            'current_path': np.zeros(shape=(len(self.linkList),), dtype=np.int8),
+            'link_spectrum': np.zeros(shape=(len(self.linkList),len(self.linkList[0].spectrum)), dtype=np.int8)
             }
-
         self.info = {}
 
         if self.user.getCurrentRequest() != None:
             self.user.deselectRequest()
 
-        highlighted = [0]*self.NUMBEROFSLOTS
+        highlighted = [0]*self.numSlots
         for node in self.nodeList:
             node.setHighlighted(False)
             node.setSelected(False)
@@ -249,7 +242,7 @@ class game_gym(gym.Env):
             # self.state['current_path'] = np.pad(np.array([[link.getNode1().getID(), link.getNode2().getID()] for link in linksSelected]), 
             # ((0, 5 - len(linksSelected)), (0, 0)), mode='constant')
             path_IDs = [[link.getID()] for link in linksSelected]
-            current_path = np.zeros(shape=(5,), dtype=np.int8)
+            current_path = np.zeros(shape=(len(self.linkList),), dtype=np.int8)
             for ID in path_IDs:
                 current_path[ID] = 1
             self.state['current_path'] = current_path
@@ -261,7 +254,7 @@ class game_gym(gym.Env):
             self.state['mode'] = np.array(mode, dtype=np.int8)
         else:
             self.state['request_bandwidth'] = np.ones(shape=(1,), dtype=np.int8)
-            self.state['current_path'] = np.zeros(shape=(5,), dtype=np.int8)
+            self.state['current_path'] = np.zeros(shape=(len(self.linkList),), dtype=np.int8)
             self.state['path_length'] = np.ones(shape=(1,), dtype=np.int8)
             self.state['link_spectrum'] = np.array([link.getSpectrum() for link in self.linkList])
             self.state['slot_selected'] =np.zeros(shape=(1,), dtype=np.int8)
@@ -273,23 +266,23 @@ class game_gym(gym.Env):
         #     print(self.state)
 
         self.cum_reward += self.reward
-        if (self.timer < self.requestList[-1].getTimeStart() and self.activeRequests == []) or self.timer == 0:
+        if (self.timer < self.requestList[-1].getTimeStart() and self.activeRequests == []):
             self.done = True
-            print('Time is up.')
+            print('No more requests.')
         
 
         if self.done == True:
             
             self.reward = -(len(self.requestList) - len([request for request in self.requestList if request.completed == True]))*1000/200
-            blocking_ratio = len([request for request in self.requestList if request.completed == True])/len(self.requestList)
-            self.info['bp'] = blocking_ratio
-            print(blocking_ratio)
             self.cum_reward += self.reward
             print(f'Total reward for this episode is {self.cum_reward*200}')
-
-            #avg links selected debug printout
-            print("Average links per route: " + str(self.linksmade_cum/self.total_req_num))
-
+            # Calculate blocking probablity
+            blocking_ratio = len([request for request in self.requestList if request.completed == True])/len(self.requestList)
+            self.info['bp'] = blocking_ratio
+            #avg links selected
+            avg_links = self.linksmade_cum/len([request for request in self.requestList if request.completed == True]) # changed to be completed requests
+            self.info['avg_length'] = avg_links
+            
         obs = self.get_obs()
 
 
@@ -566,7 +559,7 @@ class game_gym(gym.Env):
             # need to include selecting first few slots automatically
             bandwidth = self.user.getCurrentRequest().getBandwidth()
             linksSelected = [link for link in self.available_paths[self.index] if type(link) is Link]
-            highlightedSpectrum = [0]*self.NUMBEROFSLOTS
+            highlightedSpectrum = [0]*self.numSlots
             for i in range(bandwidth):
                 highlightedSpectrum[i] = 1
             for link in linksSelected:
@@ -581,7 +574,7 @@ class game_gym(gym.Env):
         if action == 0:
 
             linksSelected = [link for link in self.available_paths[self.index] if type(link) is Link]
-            highlightedSpectrum = [0]*NUMBEROFSLOTS
+            highlightedSpectrum = [0]*self.numSlots
             for link in linksSelected:
                 link.setSpectrumHighlighted(highlightedSpectrum)
 
@@ -601,7 +594,7 @@ class game_gym(gym.Env):
             # need to include selecting first few slots automatically
             bandwidth = self.user.getCurrentRequest().getBandwidth()
             linksSelected = [link for link in self.available_paths[self.index] if type(link) is Link]
-            highlightedSpectrum = [0]*self.NUMBEROFSLOTS
+            highlightedSpectrum = [0]*self.numSlots
             for i in range(bandwidth):
                 highlightedSpectrum[i] = 1
             for link in linksSelected:
@@ -611,7 +604,7 @@ class game_gym(gym.Env):
         elif action == 1:
 
             linksSelected = [link for link in self.available_paths[self.index] if type(link) is Link]
-            highlightedSpectrum = [0]*NUMBEROFSLOTS
+            highlightedSpectrum = [0]*self.numSlots
             for link in linksSelected:
                 link.setSpectrumHighlighted(highlightedSpectrum)
             
@@ -629,7 +622,7 @@ class game_gym(gym.Env):
             # need to include selecting first few slots automatically
             bandwidth = self.user.getCurrentRequest().getBandwidth()
             linksSelected = [link for link in self.available_paths[self.index] if type(link) is Link]
-            highlightedSpectrum = [0]*self.NUMBEROFSLOTS
+            highlightedSpectrum = [0]*self.numSlots
             for i in range(bandwidth):
                 highlightedSpectrum[i] = 1
             for link in linksSelected:
@@ -639,12 +632,6 @@ class game_gym(gym.Env):
         # IF ENTER key is pressed
         # THEN the user selects the link and moves to the adjacent node
         elif action == 2:
-            # self.reward = (5+max([len(path_length) for path_length in self.available_paths]) - \
-            #     (len(self.available_paths[self.index])))*20/200
-                    #adding the number of links made
-            self.linksmade_cum += len(linksSelected)
-            #debug print
-            print("Total number of links made in episode: " + str(self.linksmade_cum))
 
             for item in self.available_paths[self.index]:
                 item.setHighlighted(False)
@@ -655,18 +642,23 @@ class game_gym(gym.Env):
             self.topologyMode = False
             self.spectrumMode = True
 
-            
-            #adding the number of links made
-            self.linksmade_cum += len(linksSelected)
-            #debug print
-            print("Total number of links made in episode: " + str(self.linksmade_cum))
-
 
             # need to include selecting first few slots automatically
             bandwidth = self.user.getCurrentRequest().getBandwidth()
             linksSelected = [link for link in self.available_paths[self.index] if type(link) is Link]
-            self.reward = (3 - (len(linksSelected)))*1000/200
-            highlightedSpectrum = [0]*self.NUMBEROFSLOTS
+
+            # maximum path length
+            max_path_len = 0
+            for path in self.available_paths:
+                path_len = len([link for link in path if type(link) is Link])
+                if path_len > max_path_len:
+                    max_path_len = path_len
+            
+
+            self.reward = (max_path_len - (len(linksSelected)))*1000/200
+            # adding the number of links made
+            self.linksmade_cum += len(linksSelected)
+            highlightedSpectrum = [0]*self.numSlots
             for i in range(bandwidth):
                 highlightedSpectrum[i] = 1
             for link in linksSelected:
@@ -698,10 +690,10 @@ class game_gym(gym.Env):
             self.false_counter = 0
             bandwidth = self.user.getCurrentRequest().getBandwidth()
             if self.spectrumIndex == 0:
-                self.spectrumIndex = self.NUMBEROFSLOTS - bandwidth
+                self.spectrumIndex = self.numSlots - bandwidth
             else:
                 self.spectrumIndex -= 1
-            highlightedSpectrum = [0]*5
+            highlightedSpectrum = [0]*self.numSlots
             linksSelected = [link for link in self.available_paths[self.index] if type(link) is Link]
             for i in range(bandwidth):
                 highlightedSpectrum[i + self.spectrumIndex] = 1
@@ -713,11 +705,11 @@ class game_gym(gym.Env):
         elif action == 1:
             self.false_counter = 0
             bandwidth = self.user.getCurrentRequest().getBandwidth()
-            if self.spectrumIndex == self.NUMBEROFSLOTS - bandwidth:
+            if self.spectrumIndex == self.numSlots - bandwidth:
                 self.spectrumIndex = 0
             else:
                 self.spectrumIndex += 1
-            highlightedSpectrum = [0]*5
+            highlightedSpectrum = [0]*self.numSlots
             linksSelected = [link for link in self.available_paths[self.index] if type(link) is Link]
             for i in range(bandwidth):
                 highlightedSpectrum[i + self.spectrumIndex] = 1
@@ -730,7 +722,7 @@ class game_gym(gym.Env):
         linksSelected = [link for link in self.available_paths[self.index] if type(link) is Link]
         self.possible = 1
         for link in linksSelected:
-            for i in range(self.NUMBEROFSLOTS):
+            for i in range(self.numSlots):
                 if link.getSpectrumHighlighted()[i] == 1:
                     if link.getSpectrum()[i] == 1:
                         self.possible = 0
@@ -745,7 +737,7 @@ class game_gym(gym.Env):
                 for link in linksSelected:
                     newSelected = [sum(x) for x in zip(link.getSpectrum(), link.getSpectrumHighlighted())]
                     link.setSpectrum(newSelected)
-                    highlightedSpectrum = [0]*5
+                    highlightedSpectrum = [0]*self.numSlots
                     link.setSpectrumHighlighted(highlightedSpectrum)
                 # throw back into request mode and add point and deselect highlighted spectrum, remove request
                 self.SCORE += 1
@@ -760,10 +752,6 @@ class game_gym(gym.Env):
             if self.false_counter > 5:
                 self.done = True
                 print('Too many invalid actions.')
-                
-
-                #avg links selected debug printout
-                print("Average links per route: " + str(self.linksmade_cum/self.total_req_num))
 
 
     def checkAvailable(self):
@@ -794,7 +782,7 @@ class game_gym(gym.Env):
         # the request is deselcted automatically since it has expired
         self.user.deselectRequest()
         # nodes and links that user has selected or is selecting will be removed
-        highlighted = [0]*self.NUMBEROFSLOTS
+        highlighted = [0]*self.numSlots
         for node in self.nodeList:
             node.setHighlighted(False)
             node.setSelected(False)
@@ -814,7 +802,7 @@ class game_gym(gym.Env):
                 edges.append((link[1].getNode1().getID(), link[1].getNode2().getID()))
         edges = set(edges)
 
-        graph = np.zeros(shape=(5,2), dtype=np.int8)
+        graph = np.zeros(shape=(len(self.linkList),2), dtype=np.int8)
         for i, link in enumerate(edges):
             graph[i] = link[0], link[1]
 
@@ -845,15 +833,18 @@ def createTestTopology():
     nodeB = Node(1, 'B', 300, 400)
     nodeC = Node(2, 'C', 650, 200)
     nodeD = Node(3, 'D', 650, 400)
+    nodeE = Node(4, 'E', 400, 100)
     # testLinks
-    link1 = Link(0, nodeA, nodeB)
-    link2 = Link(1, nodeB, nodeC)
-    link3 = Link(2, nodeB, nodeD)
-    link4 = Link(3, nodeA, nodeC)
-    link5 = Link(4, nodeC, nodeD)
+    num_slots = 6
+    link1 = Link(0, nodeA, nodeB, num_slots)
+    link2 = Link(1, nodeB, nodeC, num_slots)
+    link3 = Link(2, nodeB, nodeD, num_slots)
+    link4 = Link(3, nodeA, nodeC, num_slots)
+    link5 = Link(4, nodeC, nodeD, num_slots)
+    link6 = Link(5, nodeA, nodeE, num_slots)
 
-    nodeList = [nodeA, nodeB, nodeC, nodeD]
-    linkList = [link1, link2, link3, link4, link5]
+    nodeList = [nodeA, nodeB, nodeC, nodeD, nodeE]
+    linkList = [link1, link2, link3, link4, link5, link6]
 
     # save the links associated to each node in a list
     for node in nodeList:

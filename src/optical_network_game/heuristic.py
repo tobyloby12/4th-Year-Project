@@ -1,8 +1,10 @@
 import numpy as np
 
 class Heuristic:
-    def __init__(self):
+    def __init__(self, linkList):
         self.available_paths = []
+        self.numSlots = len(linkList[0].spectrum)
+        self.numLinks = len(linkList)
 
     def path_checker(self, state_dict):
 
@@ -48,9 +50,9 @@ class Heuristic:
             'false_counter': state[3],
             'path_length': state[4],
             'mode': state[5],
-            'topology': np.reshape(state[6:16], (5,2)), 
-            'current_path': state[16:21],
-            'link_spectrum': np.reshape(state[21:46], (5,5))
+            'topology': np.reshape(state[6:6 + self.numLinks*2], (self.numLinks,2)), 
+            'current_path': state[6 + self.numLinks*2:6 + self.numLinks*2 + self.numLinks],
+            'link_spectrum': np.reshape(state[6 + self.numLinks*2 + self.numLinks:6 + self.numLinks*2 + self.numLinks + self.numSlots*self.numLinks], (self.numLinks, self.numSlots))
             }
         return state_dict
 
