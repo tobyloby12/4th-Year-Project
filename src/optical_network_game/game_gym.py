@@ -56,7 +56,7 @@ class game_gym(gym.Env):
     # defined variable for colouring selected and unselected requests
     colorRequest = BLACK
 
-    def __init__(self, nodeList, linkList, requestList, user):
+    def __init__(self, nodeList, linkList, requestList, user, dynamic=True):
         
         self.nodeList = nodeList
         self.linkList = linkList
@@ -65,7 +65,7 @@ class game_gym(gym.Env):
         self.user = user
 
         self.action_space = spaces.Discrete(3)
-        
+        self.dynamic = dynamic
         self.initialise_values()
         
         
@@ -122,6 +122,13 @@ class game_gym(gym.Env):
         self.false_counter = 0
         self.index = 0
         self.spectrumIndex = 0
+        self.continuous_cum = 0
+        self.contiguous_cum = 0
+
+        # max values for observation space
+        self.max_slots = 7
+        self.max_links = 10
+        self.max_nodes = 6
 
         # creating observation space for gym
         # self.observation_space = spaces.Box(
@@ -131,26 +138,47 @@ class game_gym(gym.Env):
         #     dtype=np.uint8
         #     )
         
+        if self.dynamic == True:
+            self.observation_space_dict = {
+                'request_bandwidth': spaces.Box(low=1, high=self.numSlots, shape = (1,), dtype = np.int8),
+                'slot_selected': spaces.Box(low=0, high=self.numSlots, shape = (1,), dtype = np.int8),
+                'possible': spaces.Box(low=0, high=1, shape = (1,), dtype = np.int8),
+                'false_counter': spaces.Box(low=0, high=6, shape = (1,), dtype = np.int8),
+                'path_length': spaces.Box(low=0, high=len(self.linkList), shape = (1,), dtype = np.int8),
+                'mode': spaces.Box(low=0, high=2, shape = (1,), dtype = np.int8)
+                }
 
-        self.observation_space_dict = {
-            'request_bandwidth': spaces.Box(low=1, high=self.numSlots, shape = (1,), dtype = np.int8),
-            'slot_selected': spaces.Box(low=0, high=self.numSlots, shape = (1,), dtype = np.int8),
-            'possible': spaces.Box(low=0, high=1, shape = (1,), dtype = np.int8),
-            'false_counter': spaces.Box(low=0, high=6, shape = (1,), dtype = np.int8),
-            'path_length': spaces.Box(low=0, high=len(self.linkList), shape = (1,), dtype = np.int8),
-            'mode': spaces.Box(low=0, high=2, shape = (1,), dtype = np.int8)
-            }
+            for i in range(len(self.linkList)):
+                self.observation_space_dict[f'topology_link_a{i}'] = spaces.Box(low=0, high=len(self.linkList), shape = (1,), dtype = np.int8)
+                self.observation_space_dict[f'topology_link_b{i}'] = spaces.Box(low=0, high=len(self.linkList), shape = (1,), dtype = np.int8)
 
-        for i in range(len(self.linkList)):
-            self.observation_space_dict[f'topology_link_a{i}'] = spaces.Box(low=0, high=len(self.linkList), shape = (1,), dtype = np.int8)
-            self.observation_space_dict[f'topology_link_b{i}'] = spaces.Box(low=0, high=len(self.linkList), shape = (1,), dtype = np.int8)
+            for i in range(len(self.linkList)):
+                self.observation_space_dict[f'current_path_link{i}'] = spaces.Box(low=0, high=1, shape = (1,), dtype = np.int8)
 
-        for i in range(len(self.linkList)):
-            self.observation_space_dict[f'current_path_link{i}'] = spaces.Box(low=0, high=1, shape = (1,), dtype = np.int8)
+            for i in range(len(self.linkList)):
+                for j in range(self.numSlots):
+                    self.observation_space_dict[f'link_spectrum_{j}_{i}'] = spaces.Box(low=0, high=1, shape = (1,), dtype = np.int8)
+        
+        else:
+            self.observation_space_dict = {
+                'request_bandwidth': spaces.Box(low=1, high=self.max_slots, shape = (1,), dtype = np.int8),
+                'slot_selected': spaces.Box(low=0, high=self.max_slots, shape = (1,), dtype = np.int8),
+                'possible': spaces.Box(low=0, high=1, shape = (1,), dtype = np.int8),
+                'false_counter': spaces.Box(low=0, high=6, shape = (1,), dtype = np.int8),
+                'path_length': spaces.Box(low=0, high=self.max_links, shape = (1,), dtype = np.int8),
+                'mode': spaces.Box(low=0, high=2, shape = (1,), dtype = np.int8)
+                }
 
-        for i in range(len(self.linkList)):
-            for j in range(self.numSlots):
-                self.observation_space_dict[f'link_spectrum_{j}_{i}'] = spaces.Box(low=0, high=1, shape = (1,), dtype = np.int8)
+            for i in range(self.max_links):
+                self.observation_space_dict[f'topology_link_a{i}'] = spaces.Box(low=0, high=len(self.linkList), shape = (1,), dtype = np.int8)
+                self.observation_space_dict[f'topology_link_b{i}'] = spaces.Box(low=0, high=len(self.linkList), shape = (1,), dtype = np.int8)
+
+            for i in range(self.max_links):
+                self.observation_space_dict[f'current_path_link{i}'] = spaces.Box(low=0, high=1, shape = (1,), dtype = np.int8)
+
+            for i in range(self.max_links):
+                for j in range(self.max_slots):
+                    self.observation_space_dict[f'link_spectrum_{j}_{i}'] = spaces.Box(low=0, high=1, shape = (1,), dtype = np.int8)
 
 
         mins = np.array([x.low[0] for x in self.observation_space_dict.values()])
@@ -159,18 +187,30 @@ class game_gym(gym.Env):
         self.observation_space = spaces.Box(mins, maxs, dtype=np.int8)
 
         graph = self.links()
-
-        self.state = {
-            'request_bandwidth': np.ones(shape=(1,), dtype=np.int8),
-            'slot_selected': np.zeros(shape=(1,), dtype=np.int8),
-            'possible': np.zeros(shape=(1,), dtype=np.int8),
-            'false_counter': np.zeros(shape=(1,), dtype=np.int8),
-            'path_length': np.ones(shape=(1,), dtype=np.int8),
-            'mode': np.zeros(shape=(1,), dtype=np.int8),
-            'topology': graph, 
-            'current_path': np.zeros(shape=(len(self.linkList),), dtype=np.int8),
-            'link_spectrum': np.zeros(shape=(len(self.linkList),len(self.linkList[0].spectrum)), dtype=np.int8)
-            }
+        if self.dynamic == True:
+            self.state = {
+                'request_bandwidth': np.ones(shape=(1,), dtype=np.int8),
+                'slot_selected': np.zeros(shape=(1,), dtype=np.int8),
+                'possible': np.zeros(shape=(1,), dtype=np.int8),
+                'false_counter': np.zeros(shape=(1,), dtype=np.int8),
+                'path_length': np.ones(shape=(1,), dtype=np.int8),
+                'mode': np.zeros(shape=(1,), dtype=np.int8),
+                'topology': graph, 
+                'current_path': np.zeros(shape=(len(self.linkList),), dtype=np.int8),
+                'link_spectrum': np.zeros(shape=(len(self.linkList),len(self.linkList[0].spectrum)), dtype=np.int8)
+                }
+        else:
+            self.state = {
+                'request_bandwidth': np.ones(shape=(1,), dtype=np.int8),
+                'slot_selected': np.zeros(shape=(1,), dtype=np.int8),
+                'possible': np.zeros(shape=(1,), dtype=np.int8),
+                'false_counter': np.zeros(shape=(1,), dtype=np.int8),
+                'path_length': np.ones(shape=(1,), dtype=np.int8),
+                'mode': np.zeros(shape=(1,), dtype=np.int8),
+                'topology': np.pad(graph, ((0, self.max_links-len(self.linkList)),(0, 0))),
+                'current_path': np.zeros(shape=(self.max_links,), dtype=np.int8),
+                'link_spectrum': np.zeros(shape=(self.max_links, self.max_slots), dtype=np.int8)
+                }
         self.info = {}
 
         if self.user.getCurrentRequest() != None:
@@ -203,8 +243,6 @@ class game_gym(gym.Env):
 
 
     def step(self, action):
-        # print(self.requestMode)
-        # print(action)
         self.reward = 0
         for event in pygame.event.get():
             # If game screen is closed, Pygame is stopped
@@ -236,34 +274,60 @@ class game_gym(gym.Env):
         
         # obs = np.array(pygame.surfarray.array3d(self.DISPLAYSURF.subsurface((210, 0, 560, 600))), dtype=np.uint8)
         # obs = cv2.resize(obs, dsize=(256, 256))
-        if self.user.getCurrentRequest() != None:
-            self.state['request_bandwidth'] = np.array(self.user.getCurrentRequest().getBandwidth())
-            linksSelected = [link for link in self.available_paths[self.index] if type(link) is Link]
-            # self.state['current_path'] = np.pad(np.array([[link.getNode1().getID(), link.getNode2().getID()] for link in linksSelected]), 
-            # ((0, 5 - len(linksSelected)), (0, 0)), mode='constant')
-            path_IDs = [[link.getID()] for link in linksSelected]
-            current_path = np.zeros(shape=(len(self.linkList),), dtype=np.int8)
-            for ID in path_IDs:
-                current_path[ID] = 1
-            self.state['current_path'] = current_path
-            self.state['path_length'] = np.array(len(linksSelected), dtype=np.int8)
-            self.state['link_spectrum'] = np.array([link.getSpectrum() for link in self.linkList])
-            self.state['slot_selected'] = np.array(self.spectrumIndex)
-            self.state['possible'] = np.array(self.possible)
-            self.state['false_counter'] = np.array(self.false_counter, dtype=np.int8)
-            self.state['mode'] = np.array(mode, dtype=np.int8)
+        if self.dynamic == True:
+            if self.user.getCurrentRequest() != None:
+                self.state['request_bandwidth'] = np.array(self.user.getCurrentRequest().getBandwidth())
+                linksSelected = [link for link in self.available_paths[self.index] if type(link) is Link]
+                # self.state['current_path'] = np.pad(np.array([[link.getNode1().getID(), link.getNode2().getID()] for link in linksSelected]), 
+                # ((0, 5 - len(linksSelected)), (0, 0)), mode='constant')
+                path_IDs = [[link.getID()] for link in linksSelected]
+                current_path = np.zeros(shape=(len(self.linkList),), dtype=np.int8)
+                for ID in path_IDs:
+                    current_path[ID] = 1
+                self.state['current_path'] = current_path
+                self.state['path_length'] = np.array(len(linksSelected), dtype=np.int8)
+                self.state['link_spectrum'] = np.array([link.getSpectrum() for link in self.linkList])
+                self.state['slot_selected'] = np.array(self.spectrumIndex)
+                self.state['possible'] = np.array(self.possible)
+                self.state['false_counter'] = np.array(self.false_counter, dtype=np.int8)
+                self.state['mode'] = np.array(mode, dtype=np.int8)
+            else:
+                self.state['request_bandwidth'] = np.ones(shape=(1,), dtype=np.int8)
+                self.state['current_path'] = np.zeros(shape=(len(self.linkList),), dtype=np.int8)
+                self.state['path_length'] = np.ones(shape=(1,), dtype=np.int8)
+                self.state['link_spectrum'] = np.array([link.getSpectrum() for link in self.linkList])
+                self.state['slot_selected'] =np.zeros(shape=(1,), dtype=np.int8)
+                self.state['possible'] = np.array(self.possible)
+                self.state['false_counter'] = np.array([self.false_counter], dtype=np.int8)
+                self.state['mode'] = np.array(mode, dtype=np.int8)
         else:
-            self.state['request_bandwidth'] = np.ones(shape=(1,), dtype=np.int8)
-            self.state['current_path'] = np.zeros(shape=(len(self.linkList),), dtype=np.int8)
-            self.state['path_length'] = np.ones(shape=(1,), dtype=np.int8)
-            self.state['link_spectrum'] = np.array([link.getSpectrum() for link in self.linkList])
-            self.state['slot_selected'] =np.zeros(shape=(1,), dtype=np.int8)
-            self.state['possible'] = np.array(self.possible)
-            self.state['false_counter'] = np.array([self.false_counter], dtype=np.int8)
-            self.state['mode'] = np.array(mode, dtype=np.int8)
-
-        # if action != 6:    
-        #     print(self.state)
+            if self.user.getCurrentRequest() != None:
+                self.state['request_bandwidth'] = np.array(self.user.getCurrentRequest().getBandwidth())
+                linksSelected = [link for link in self.available_paths[self.index] if type(link) is Link]
+                # self.state['current_path'] = np.pad(np.array([[link.getNode1().getID(), link.getNode2().getID()] for link in linksSelected]), 
+                # ((0, 5 - len(linksSelected)), (0, 0)), mode='constant')
+                path_IDs = [[link.getID()] for link in linksSelected]
+                current_path = np.zeros(shape=(self.max_links,), dtype=np.int8)
+                for ID in path_IDs:
+                    current_path[ID] = 1
+                self.state['current_path'] = current_path
+                self.state['path_length'] = np.array(len(linksSelected), dtype=np.int8)
+                self.state['link_spectrum'] = np.pad(np.array([link.getSpectrum() for link in self.linkList]), 
+                ((0, self.max_links-len(self.linkList)),(0, self.max_slots-self.numSlots)))
+                self.state['slot_selected'] = np.array(self.spectrumIndex)
+                self.state['possible'] = np.array(self.possible)
+                self.state['false_counter'] = np.array(self.false_counter, dtype=np.int8)
+                self.state['mode'] = np.array(mode, dtype=np.int8)
+            else:
+                self.state['request_bandwidth'] = np.ones(shape=(1,), dtype=np.int8)
+                self.state['current_path'] = np.zeros(shape=(self.max_links,), dtype=np.int8)
+                self.state['path_length'] = np.ones(shape=(1,), dtype=np.int8)
+                self.state['link_spectrum'] = np.pad(np.array([link.getSpectrum() for link in self.linkList]), 
+                ((0, self.max_links-len(self.linkList)),(0, self.max_slots-self.numSlots)))
+                self.state['slot_selected'] = np.zeros(shape=(1,), dtype=np.int8)
+                self.state['possible'] = np.array(self.possible)
+                self.state['false_counter'] = np.array([self.false_counter], dtype=np.int8)
+                self.state['mode'] = np.array(mode, dtype=np.int8)
 
         self.cum_reward += self.reward
         if (self.timer < self.requestList[-1].getTimeStart() and self.activeRequests == []):
@@ -278,13 +342,23 @@ class game_gym(gym.Env):
             print(f'Total reward for this episode is {self.cum_reward*200}')
             # Calculate blocking probablity
             blocking_ratio = len([request for request in self.requestList if request.completed == True])/len(self.requestList)
-            self.info['bp'] = blocking_ratio
-            #avg links selected
+            self.info['bp'] = 1-blocking_ratio
+            # avg links selected
             avg_links = self.linksmade_cum/len([request for request in self.requestList if request.completed == True]) # changed to be completed requests
             self.info['avg_length'] = avg_links
-            
+            # avg number of requests blocked due to insufficient continuous slots
+            try:
+                avg_continuous = self.continuous_cum/len([request for request in self.requestList if request.getBlocked() == True])
+                self.info['blocked_continuous'] = avg_continuous
+            except:
+                self.info['blocked_continuous'] = 0
+            # avg number of requests blocked due to insufficient contiguous slots
+            try:
+                avg_contiguous = self.contiguous_cum/len([request for request in self.requestList if request.getBlocked() == True])
+                self.info['blocked_contiguous'] = avg_contiguous
+            except:
+                self.info['blocked_contiguous'] = 0
         obs = self.get_obs()
-
 
         return obs, self.reward*200, self.done, self.info
 
@@ -488,13 +562,15 @@ class game_gym(gym.Env):
         for request in self.activeRequests:
             # IF the game timer matches the end time of the request (calculated based on time limit of request)
             # THEN the request is considered blocked and score decreases. Request is also de-activated
-            if self.timer == request.timeStart - request.timeLimit + 1:
+            if self.timer == request.timeStart - request.timeLimit:
                 request.setBlock(True)
                 continuous, contiguous = self.typeBlock(request)
                 if contiguous == True and continuous == False:
-                    print('Lack of continuous slots')
+                    self.continuous_cum += 1
                 elif contiguous == False:
-                    print('Lack of contiguous slots')
+                    self.contiguous_cum += 1
+                else:
+                    print("Stop hitting yourself")
                 self.SCORE -= 1
                 # self.reward -=200
                 self.reward = -50
@@ -747,7 +823,9 @@ class game_gym(gym.Env):
                 # throw back into request mode and add point and deselect highlighted spectrum, remove request
                 self.SCORE += 1
                 self.user.getCurrentRequest().complete()
+
                 self.activeRequests.remove(self.user.getCurrentRequest())
+
                 self.user.getCurrentRequest().setTimeAllocated(self.timer)
                 availableLinks = self.clearAll()
             else:
@@ -821,6 +899,8 @@ class game_gym(gym.Env):
         continuous = False
         contiguous = False
         # check contiguous
+        if self.available_paths == None:
+            return False, False
         for path in self.available_paths:
             inter_contiguous = True
             links = [link for link in path if type(link) is Link]
@@ -842,8 +922,6 @@ class game_gym(gym.Env):
             if inter_contiguous == True:
                 contiguous = True
 
-
-########
         # check continuous
         if contiguous == True:
             # finding which paths have enough spectrum and eliminating impossible paths

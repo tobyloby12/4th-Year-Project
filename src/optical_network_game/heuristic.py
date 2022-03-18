@@ -52,7 +52,8 @@ class Heuristic:
             'mode': state[5],
             'topology': np.reshape(state[6:6 + self.numLinks*2], (self.numLinks,2)), 
             'current_path': state[6 + self.numLinks*2:6 + self.numLinks*2 + self.numLinks],
-            'link_spectrum': np.reshape(state[6 + self.numLinks*2 + self.numLinks:6 + self.numLinks*2 + self.numLinks + self.numSlots*self.numLinks], (self.numLinks, self.numSlots))
+            'link_spectrum': np.reshape(state[6 + self.numLinks*2 + self.numLinks:6 + self.numLinks*2 + self.numLinks + self.numSlots*self.numLinks], 
+            (self.numLinks, self.numSlots))
             }
         return state_dict
 
