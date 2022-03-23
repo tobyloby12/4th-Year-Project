@@ -69,7 +69,7 @@ class Request:
     def getTimeStart(self):
         return self.timeStart
 
-def generateRequests(listOfNodes, numberOfRequests, req_interval, hold_time):
+def generateRequests(listOfNodes, numberOfRequests, req_interval, hold_time, time_limit):
     '''
     Generate a list of requests randomly based on nodes in topology and number of requests.
 
@@ -99,7 +99,7 @@ def generateRequests(listOfNodes, numberOfRequests, req_interval, hold_time):
         # randomising time start
         timeStart = 60 - i*req_interval
         # creating 
-        request = Request(i, source, destination, bandwidth, timeStart, hold_time=hold_time, time_limit=req_interval)
+        request = Request(i, source, destination, bandwidth, timeStart, hold_time=hold_time, time_limit=time_limit)
         requestsList.append(request)
     return requestsList
 
