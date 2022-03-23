@@ -754,7 +754,7 @@ class game_gym(gym.Env):
             #adding the number of links made
             self.linksmade_cum += len(linksSelected)
             #debug print
-            print("Total number of links made in episode: " + str(self.linksmade_cum))
+            #print("Total number of links made in episode: " + str(self.linksmade_cum))
 
             
 
@@ -835,7 +835,10 @@ class game_gym(gym.Env):
                 self.SCORE += 1
                 self.user.getCurrentRequest().complete()
 
-                self.activeRequests.remove(self.user.getCurrentRequest())
+                try:
+                    self.activeRequests.remove(self.user.getCurrentRequest())
+                except:
+                    pass
 
                 self.user.getCurrentRequest().setTimeAllocated(self.timer)
                 availableLinks = self.clearAll()
