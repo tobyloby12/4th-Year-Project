@@ -348,9 +348,14 @@ class game_gym(gym.Env):
             # Calculate blocking probablity
             blocking_ratio = len([request for request in self.requestList if request.completed == True])/len(self.requestList)
             self.info['bp'] = 1-blocking_ratio
+
             # avg links selected
-            avg_links = self.linksmade_cum/len([request for request in self.requestList if request.completed == True]) # changed to be completed requests
-            self.info['avg_length'] = avg_links
+            try:
+                avg_links = self.linksmade_cum/len([request for request in self.requestList if request.completed == True]) # changed to be completed requests
+                self.info['avg_length'] = avg_links
+            except:
+                self.info['avg_length'] = 0
+            
             # avg number of requests blocked due to insufficient continuous slots
             try:
                 avg_continuous = self.continuous_cum/len([request for request in self.requestList if request.getBlocked() == True])
@@ -567,7 +572,7 @@ class game_gym(gym.Env):
         for request in self.activeRequests:
             # IF the game timer matches the end time of the request (calculated based on time limit of request)
             # THEN the request is considered blocked and score decreases. Request is also de-activated
-            if self.timer == request.timeStart - request.timeLimit:
+            if self.timer == request.timeStart - request.timeLimit + 1:
                 request.setBlock(True)
                 continuous, contiguous = self.typeBlock(request)
                 if contiguous == True and continuous == False:
