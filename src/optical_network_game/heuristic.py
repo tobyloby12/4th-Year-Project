@@ -14,13 +14,18 @@ class Heuristic:
         # checking each path
         possible = False
         for available_path in self.available_paths:
+            path_spectrum = []
+            # updating links from state
+            for i in range(len(available_path['current_path'])):
+                if available_path['current_path'][i] == 1:
+                    path_spectrum.append(state_dict['link_spectrum'][i])
             # checking all possible places where consecutive free could be
-            for i in range(len(available_path['link_spectrum'][0]) - bandwidth + 1):
+            for i in range(len(path_spectrum[0]) - bandwidth + 1):
                 possible = True
                 # checking through each cell in the bandwidth capacity
                 for j in range(bandwidth):
-                    for spectrum in available_path['link_spectrum']:
-                        if spectrum[i+j] != 0:
+                    for spectrum in path_spectrum:
+                        if spectrum[i+j] == 1:
                             possible = False
                 # appending to new list which contains paths unobstructed
                 if possible == True:
@@ -61,6 +66,7 @@ class Heuristic:
         state_dict = self.to_dict(state)
         # request mode
         if state_dict['mode'] == 0:
+            self.available_paths = []
             action = 4
             return action
         # topology mode
@@ -86,7 +92,6 @@ class Heuristic:
             else:
                 min_path = self.path_checker(state_dict)
                 if min_path == None:
-                    self.available_paths = []
                     action = 0
                 elif (state_dict['current_path'] == min_path['current_path']).all():
                     action = 2
@@ -99,7 +104,6 @@ class Heuristic:
             # keep moving until possible is true
             if state_dict['possible'] == 1:
                 action = 2
-                self.available_paths = []
             else:
                 action = 1
             return action

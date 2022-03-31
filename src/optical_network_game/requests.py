@@ -99,7 +99,7 @@ def generateRequests(listOfNodes, numberOfRequests, req_interval, hold_time):
         # randomising time start
         timeStart = 60 - i*req_interval
         # creating 
-        request = Request(i, source, destination, bandwidth, timeStart, hold_time=hold_time, time_limit=req_interval)
+        request = Request(i, source, destination, bandwidth, timeStart, hold_time=hold_time, time_limit=req_interval+1)
         requestsList.append(request)
     return requestsList
 

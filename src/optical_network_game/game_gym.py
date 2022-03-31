@@ -85,6 +85,7 @@ class game_gym(gym.Env):
         # resetting completed in requests
         for request in self.requestList:
             request.completed = False
+            request.setBlock(False)
 
         # initialize pygame
         pygame.init()
@@ -344,8 +345,11 @@ class game_gym(gym.Env):
             blocking_ratio = len([request for request in self.requestList if request.completed == True])/len(self.requestList)
             self.info['bp'] = 1-blocking_ratio
             # avg links selected
-            avg_links = self.linksmade_cum/len([request for request in self.requestList if request.completed == True]) # changed to be completed requests
-            self.info['avg_length'] = avg_links
+            try:
+                avg_links = self.linksmade_cum/len([request for request in self.requestList if request.completed == True]) # changed to be completed requests
+                self.info['avg_length'] = avg_links
+            except:
+                self.info['avg_length'] = 0
             # avg number of requests blocked due to insufficient continuous slots
             try:
                 avg_continuous = self.continuous_cum/len([request for request in self.requestList if request.getBlocked() == True])
@@ -562,15 +566,18 @@ class game_gym(gym.Env):
         for request in self.activeRequests:
             # IF the game timer matches the end time of the request (calculated based on time limit of request)
             # THEN the request is considered blocked and score decreases. Request is also de-activated
-            if self.timer == request.timeStart - request.timeLimit:
+            if self.timer == request.timeStart - request.timeLimit +1:
                 request.setBlock(True)
                 continuous, contiguous = self.typeBlock(request)
                 if contiguous == True and continuous == False:
                     self.continuous_cum += 1
+                    print('lack continuous')
                 elif contiguous == False:
                     self.contiguous_cum += 1
+                    print('lack contiguous')
                 else:
-                    print("Stop hitting yourself")
+                    print(self.state)
+                    print('no reason')
                 self.SCORE -= 1
                 # self.reward -=200
                 self.reward = -50
@@ -823,8 +830,11 @@ class game_gym(gym.Env):
                 # throw back into request mode and add point and deselect highlighted spectrum, remove request
                 self.SCORE += 1
                 self.user.getCurrentRequest().complete()
-
-                self.activeRequests.remove(self.user.getCurrentRequest())
+                
+                try:
+                    self.activeRequests.remove(self.user.getCurrentRequest())
+                except:
+                    pass
 
                 self.user.getCurrentRequest().setTimeAllocated(self.timer)
                 availableLinks = self.clearAll()
