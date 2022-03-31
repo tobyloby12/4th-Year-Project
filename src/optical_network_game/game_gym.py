@@ -89,6 +89,7 @@ class game_gym(gym.Env):
         # resetting completed in requests
         for request in self.requestList:
             request.completed = False
+            request.setBlock(False)
 
         # initialize pygame
         pygame.init()
