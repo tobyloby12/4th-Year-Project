@@ -852,9 +852,9 @@ class game_gym(gym.Env):
                 self.reward = -0.3
                 self.false_counter += 1
             
-            if self.false_counter > 5:
-                self.done = True
-                print('Too many invalid actions.')
+            #if self.false_counter > 5:
+            #    self.done = True
+            #    print('Too many invalid actions.')
 
 
     def checkAvailable(self):
