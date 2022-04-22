@@ -1,8 +1,8 @@
 # 4th-Year-Project
 
-UCL 4th Year Project Code
-This is be the main online repository for our group code.
-It will let us easily see what each person has done so we can track changes.
+This repository contains the work done for the 4th year project on EONs in Arcade Games. It contains both the arcade game developed along with the code to train the RL agents.
+
+In this branch, the RL agent is fed a dictionary of key values to represent the environment rather than pixel values of the game screen. The game and reward system was also modified to improve the agent training process. In particular, the routing aspect was reduced to selecting one of three precalculated shortest paths from the source to destination node of a request.
 
 
 # How to install dependancies
@@ -30,18 +30,10 @@ It will let us easily see what each person has done so we can track changes.
 
 # Gameplay and game rules
 
-This game is a representation of an Elastic Optical Network (EON). On the right side there are requests coming in, which are in gray and contain 2 letters and a number. The letters represent the source node (starting point) and destination node (end point) respectively and these correspond to the names of the nodes in the center of the game screen. When the request is selected by the user, it will highlight in red. Use the up and down arrow keys to select which request you want and press return to enter the next phase of the game. 
+This game is a representation of an Elastic Optical Network (EON). On the right side there are requests coming in, which are in gray and contain 2 letters and a number. The letters represent the source node (starting point) and destination node (end point) respectively and these correspond to the names of the nodes in the center of the game screen. Incoming requests are automatically selected.
 
-In the center of the screen is a graph made of nodes (blue circles) and links (lines). When a request is selected the source and destination nodes in the request will be shown by the nodes being filled in with colour. When the request has been selected and enter is hit, the source node will be highlighted green and the link to select the next node will be highlighted yellow along with the corresponding link. If multiple paths are available, use the up and down arrow keys to select which path you want to take and press enter to select the path. Once you reach the destination node, the next phase of the game will begin.
+In the center of the screen is a graph made of nodes (blue circles) and links (lines). When there is an active request, a random path from the source to destination node will be highlighted. This represents one of three precalculated shortest paths. The up and down arrow keys are used to choose which path you want to take. Pressing enter selects the corresponding path and the next phase of the game will begin.
 
-The final part of the game is still in development and this will be explained at a later date
+The final part of the game requires the player to select the slots. These are represented on the right hand side of the game screen. The player can press the up and down keys to select which slots will be selected, and can press return to select the slots. If the player selects slots that are already occupied (in red), this will count as an 'invalid' action and points will be deducted. Doing this more than five consecutive times will cause the game to end early. This was implemented to dissuade the RL agent from only selecting return when playing the game.
 
-The objective of the game is to complete as many requests as possible and each successful request will give a point. If the request has run out of time it is considered blocked and this leads to a point being taken away from the total. At the end of the game the remaining time will be taken into consideration to add points to the score.
-
-We hope that this game can be used for reinforcement learning purposes in elastic optical networks (EONs) and currently it is a proof of concept.
-If there are any bugs or features you think should be added, please contact one of the members of the group.
-
-
-# Buglist and future development
-- Spectrum section of the game currently not selected
-- Visuals need to be updated
+The objective of the game is to complete as many requests as possible and each successful request will give a point. If a request has run out of time it is considered blocked and this leads to a point being taken away from the total. At the end of the game the remaining time will be taken into consideration to add points to the score.
