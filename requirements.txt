@@ -1,3 +1,4 @@
 pygame==2.0.3
 gym
 stable-baselines3
+opencv-python
