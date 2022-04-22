@@ -4,6 +4,8 @@ This repository contains the work done for the 4th year project on EONs in Arcad
 
 The repository is split into many branches having various stages of the games development. The main branch has the original game in the main.py file and the gym converted game in the game_gym.py file.
 
+The simplifications branch contains the simplified version of the game where the routing is done for the agent.
+
 The dict_game branch contains the game that has been converted into a dictionary for ease of RL development. Additionally training and evaluation of the model can be found in the sw_dict_game branch.
 
 
